@@ -1,0 +1,490 @@
+{% extends 'base.html' %} {% block content %} {% load static %}
+<div class="row">
+  <div class="col-12">
+    <div
+      class="card bg-info-subtle shadow-none position-relative overflow-hidden mb-4"
+    >
+      <div class="card-body px-4 py-3">
+        <div class="row align-items-center">
+          <div class="col-md-9">
+            <h4 class="fw-semibold mb-8">Truck {{ truck_data.model }}</h4>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                  <a
+                    class="text-muted text-decoration-none"
+                    href="../main/index.html"
+                    >Dashboard</a
+                  >
+                </li>
+                <li class="breadcrumb-item" aria-current="page">
+                  {{ truck_data.license_plate }}
+                </li>
+              </ol>
+            </nav>
+          </div>
+          <div class="col-md-3">
+            <div class="text-center mb-n5">
+              <img
+                style="max-height: 110px"
+                src="{% static 'assets/images/custom_image/3dtruck.png' %}"
+                alt="truck-maintanance-image"
+                class="img-fluid mb-4"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-2">
+  <div class="col-md-12">
+    <div class="card border-info">
+      <div class="card-header bg-info text-white">
+        <i class="fas fa-robot me-2"></i>Predictive Maintenance
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4">
+            <h5><i class="fas fa-truck me-2"></i>Asset</h5>
+            <p>
+              <strong>{{ truck_data.license_plate }}</strong><br />
+              Type : <strong>{{ truck_data.model }}</strong> <br />
+              Current Odometer:
+              <strong>{{ truck_data.current_odometer }} </strong>
+            </p>
+          </div>
+          <div class="col-md-4">
+            <h5><i class="fas fa-calendar-check me-2"></i>Next Service</h5>
+            <p>Estimated: <strong>14 Juni 2025 | 168,000,00</strong></p>
+            <p>
+              Based on:
+              <span class="badge bg-warning">Odometer</span>
+              <span class="badge bg-warning">Maintenance History</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- OEE (Overall Equipment Effectiveness) -->
+  <div class="col-md-3">
+    <div class="card">
+      <div class="card-body text-center">
+        <h5 class="card-title">Last Performance</h5>
+        <div class="gauge-container">
+          <canvas id="oeeGauge"></canvas>
+        </div>
+        <p class="mt-2">
+          <span class="badge bg-success">{{ oee_value }} %</span>
+        </p>
+      </div>
+    </div>
+  </div>
+  <!-- Reliability -->
+  <div class="col-md-3">
+    <div class="card">
+      <div class="card-body text-center">
+        <h5 class="card-title">Reliability</h5>
+        <div class="gauge-container">
+          <canvas id="reliabilityGauge"></canvas>
+        </div>
+        <p class="mt-2">
+          <span class="badge bg-warning" id="reliability-score"
+            >{{ reliability }}</span
+          >
+        </p>
+      </div>
+    </div>
+  </div>
+  <!-- MTTF (Mean Time To Failure) -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body text-center">
+        <h5 class="card-title" id="mttf-dist">MTTF</h5>
+        <h1 class="text-primary" id="mttf-value">Loading ... KM</h1>
+        <p class="text-muted">(Last {{ jumlah_maintenance }} repairs)</p>
+        <div class="progress mt-2">
+          {% if persentase_mttf > 100 %}
+          <div class="progress-bar bg-success" style="width: 100%"></div>
+          {% else %}
+          <div
+            class="progress-bar bg-warning"
+            style="width: {{ persentase_mttf }}%"
+          ></div>
+          {% endif %}
+        </div>
+        <small>{{ persentase_mttf }}% from ideal (10,000 KM)</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-2">
+  <!-- Fuel Filter Pressure Trend -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">
+          <i class="fas fa-tachometer-alt mb-3"></i> | Fuel Filter Pressure
+          (kPa)
+        </h5>
+        <canvas id="pressureChart" height="150"></canvas>
+        <div class="alert alert-warning mt-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Pressure increase detected (Possible clogging)
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- TTF Distribution -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">
+          <i class="fas fa-tachometer-alt mb-3"></i> | TTF Distribution
+        </h5>
+        <canvas id="distributionChart" height="150"></canvas>
+        <div class="alert alert-info mt-3" id="distribution-name">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Loading distribution data...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Maintenance History -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h5
+          class="card-title d-flex align-items-center justify-content-between flex-wrap gap-6"
+        >
+          <i class="fas fa-history me-2"></i> Maintenance History
+          <button id="add-list" class="btn btn-primary btn-sm">
+            View All History
+          </button>
+        </h5>
+        <div class="mt-3">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Service</th>
+                <th>Odometer (KM)</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="table-success">
+                <td>15 Mar 2024</td>
+                <td>Filter replaced</td>
+                <td>159,806,00</td>
+                <td>Rp 560,000,-</td>
+              </tr>
+              <tr class="table-warning">
+                <td>02 Feb 2024</td>
+                <td>Filter cleaned</td>
+                <td>150,806,00</td>
+                <td>Rp 160,000,-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<input type="hidden" name="" id="id-truck" value="{{ truck_data.id }}" />
+<input type="hidden" name="" id="oee" value="{{ oee_value }}" />
+{% endblock content %} {% block js_block %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script
+  src="https://code.jquery.com/jquery-3.7.1.min.js"
+  integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+  crossorigin="anonymous"
+></script>
+
+<script>
+  $(document).ready(function () {
+    showMttfValue();
+  });
+</script>
+
+<script>
+  function showMttfValue() {
+    var mttfValue = document.getElementById("mttf-value");
+    var mttfDist = document.getElementById("mttf-dist");
+    var idTruck = document.getElementById("id-truck").value;
+    // Fetch MTTF value from the server using AJAX
+    $.ajax({
+      url: "/maintenance/dinamis/get_mttf/" + idTruck + "/",
+      type: "GET",
+      dataType: "json",
+      success: function (data) {
+        console.log("MTTF Data:", data); // Log the received data for debugging
+        mttfValue.innerHTML = data.mttf + " KM";
+        mttfDist.innerHTML =
+          "MTTF for the best-fit distribution " + data.distribution_name + ":";
+
+        updateReliabilityGauge(data.reliability_score);
+        updateDistributionChart(data.distribution_data); // Update reliability gauge with the fetched value
+      },
+      error: function (xhr, status, error) {
+        console.error("Error fetching MTTF data:", error);
+        mttfValue.innerHTML = "MTTF: Error fetching data";
+      },
+    });
+  }
+</script>
+
+<script>
+  // OEE Gauge
+  // OEE Doughnut Chart
+  var oee_value = parseFloat(document.getElementById("oee").value); // Convert OEE value to a number
+  if (isNaN(oee_value) || oee_value < 0 || oee_value > 100) {
+    oee_value = 0; // Default to 0 if invalid
+  }
+  var sisa = 100 - oee_value; // Calculate remaining percentage
+  if (sisa < 0) {
+    sisa = 0; // Ensure sisa is not negative
+  }
+  new Chart(document.getElementById("oeeGauge"), {
+    type: "doughnut",
+    data: {
+      labels: ["OEE", "Remaining"],
+      datasets: [
+        {
+          data: [oee_value, sisa], // OEE value and remaining percentage
+          backgroundColor: ["#1cc88a", "#e0e0e0"], // OEE color and remaining color
+          borderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      cutout: oee_value + "%", // Makes it look like a gauge
+      plugins: {
+        tooltip: {
+          enabled: false, // Disable tooltips
+        },
+        legend: {
+          display: false, // Hide legend
+        },
+        // Add a text label in the center (alternative using Chart.js plugins)
+        plugins: {
+          annotation: {
+            annotations: {
+              centerText: {
+                type: "label",
+                content: `${oee_value} OEE`,
+                position: "center",
+                font: {
+                  size: 20,
+                  weight: "bold",
+                },
+                color: "#1cc88a",
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  // Reliability Gauge
+  // Reliability Doughnut Chart
+
+  var reliability_value = parseFloat("{{ reliability|default:0 }}");
+  if (
+    isNaN(reliability_value) ||
+    reliability_value < 0 ||
+    reliability_value > 100
+  ) {
+    reliability_value = 0;
+  }
+  var reliability_remain = 100 - reliability_value;
+  if (reliability_remain < 0) {
+    reliability_remain = 0;
+  }
+  var reliabilityGauge = new Chart(
+    document.getElementById("reliabilityGauge"),
+    {
+      type: "doughnut",
+      data: {
+        labels: ["Reliability", "Remaining"],
+        datasets: [
+          {
+            data: [reliability_value, reliability_remain],
+            backgroundColor: ["#f6c23e", "#e0e0e0"],
+            borderWidth: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        cutout: reliability_value + "%",
+        plugins: {
+          tooltip: { enabled: false },
+          legend: { display: false },
+        },
+      },
+    }
+  );
+
+  // Function to update reliability gauge dynamically
+  function updateReliabilityGauge(newValue) {
+    if (isNaN(newValue) || newValue < 0 || newValue > 100) {
+      newValue = 0;
+    }
+    reliabilityGauge.data.datasets[0].data[0] = newValue;
+    reliabilityGauge.data.datasets[0].data[1] = 100 - newValue;
+    reliabilityGauge.update();
+
+    $("#reliability-score").text(newValue + "%");
+  }
+
+  // Pressure Trend Chart with Real-Time Data
+  const pressureChartCtx = document
+    .getElementById("pressureChart")
+    .getContext("2d");
+
+  // Initial data for the chart
+  const pressureData = {
+    labels: [], // Time labels will be added dynamically
+    datasets: [
+      {
+        label: "Filter Pressure",
+        data: [], // Pressure values will be added dynamically
+        borderColor: "#e74a3b",
+        backgroundColor: "rgba(231, 74, 59, 0.1)",
+        tension: 0.3,
+        fill: true,
+      },
+    ],
+  };
+
+  // Chart configuration
+  const pressureChart = new Chart(pressureChartCtx, {
+    type: "line",
+    data: pressureData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: "Time",
+          },
+        },
+        y: {
+          min: 100,
+          max: 250,
+          title: {
+            display: true,
+            text: "Pressure (kPa)",
+          },
+        },
+      },
+    },
+  });
+
+  // Function to simulate real-time data
+  function updatePressureChart() {
+    const currentTime = new Date().toLocaleTimeString(); // Get the current time
+    const newPressure = Math.floor(Math.random() * (250 - 100 + 1)) + 100; // Random pressure value between 100 and 250
+
+    // Add new data to the chart
+    pressureData.labels.push(currentTime);
+    pressureData.datasets[0].data.push(newPressure);
+
+    // Limit the number of data points to 10 for better visualization
+    if (pressureData.labels.length > 10) {
+      pressureData.labels.shift();
+      pressureData.datasets[0].data.shift();
+    }
+
+    // Update the chart
+    pressureChart.update();
+  }
+
+  // Update the chart every 2 seconds
+  setInterval(updatePressureChart, 2000);
+
+  // jika menggunakan api
+  // async function updatePressureChart() {
+  //   const response = await fetch("/api/pressure-data"); // Replace with your API endpoint
+  //   const data = await response.json();
+  //   const currentTime = new Date().toLocaleTimeString();
+
+  //   pressureData.labels.push(currentTime);
+  //   pressureData.datasets[0].data.push(data.pressure);
+
+  //   if (pressureData.labels.length > 10) {
+  //     pressureData.labels.shift();
+  //     pressureData.datasets[0].data.shift();
+  //   }
+
+  //   pressureChart.update();
+  // }
+</script>
+
+<script>
+  const distributionChartCtx = document
+    .getElementById("distributionChart")
+    .getContext("2d");
+
+  // Initial data for the distribution chart
+  const distributionData = {
+    labels: [],
+    datasets: [
+      {
+        label: "TTF Distribution",
+        data: [],
+        borderColor: "#36b9cc",
+        backgroundColor: "rgba(54, 185, 204, 0.1)",
+        tension: 0.3,
+        fill: true,
+      },
+    ],
+  };
+
+  // Chart configuration
+  const distributionChart = new Chart(distributionChartCtx, {
+    type: "line",
+    data: distributionData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: "Repair Cycle",
+          },
+        },
+        y: {
+          title: {
+            display: true,
+            text: "TTF (KM)",
+          },
+        },
+      },
+    },
+  });
+
+  // Function to update the distribution chart with data from server
+  function updateDistributionChart(data) {
+    distributionData.labels = data.labels;
+    distributionData.datasets[0].data = data.values;
+    distributionChart.update();
+    const distributionName = document.getElementById("distribution-name");
+    distributionName.innerHTML = `<i class="fas fa-chart-area me-2"></i> Distribution: ${data.distribution_name}`;
+  }
+</script>
+{% endblock %}

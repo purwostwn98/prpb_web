@@ -1,0 +1,248 @@
+{% extends 'base.html' %} {% block content %} {% load static %}
+<div class="row">
+  <div class="col-12">
+    <div class="d-flex align-items-center gap-4 mb-4">
+      <div class="position-relative">
+        <div class="border border-2 border-primary rounded-circle">
+          <img
+            src="{% static 'assets/images/custom_image/gpt_sat.png' %}"
+            class="rounded-circle m-1"
+            alt="user1"
+            width="60"
+          />
+        </div>
+      </div>
+      <div>
+        <h3 class="fw-semibold">PT. Solo Abadi Teknik (SAT)</h3>
+        <span
+          >Perbaikan & Suku Cadang Kendaraan · Jl. Solo - Semarang KM 18, Teras,
+          Boyolali, Jawa Tengah, Indonesia 57372</span
+        >
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row">
+  <div class="col-md-4">
+    <div class="card mx-2">
+      <div class="card-body">
+        <h5 class="card-title">Total Trucks</h5>
+        <h2 class="text-primary">{{ truck_count }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Avg Fuel Efficiency</h5>
+        <h2 class="text-success">-</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Maintenance Due</h5>
+        <h2 class="text-danger">0</h2>
+      </div>
+    </div>
+  </div>
+  <!-- <div class="col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Fuel Cost (Monthly)</h5>
+        <h2 class="text-warning">Rp 5,400,000,-</h2>
+      </div>
+    </div>
+  </div> -->
+</div>
+
+<div class="row mt-2">
+  <div class="col-md-12">
+    <div class="card mx-2">
+      <div class="card-body">
+        <h5 class="card-title mb-3">⚠️ Maintenance Alerts</h5>
+        <div class="alert alert-warning">
+          <strong>Truck #7 (Hino)</strong> - Fuel efficiency dropped 15%
+          (Clogged filter suspected)
+        </div>
+        <div class="alert alert-danger">
+          <strong>Truck #12 (Isuzu)</strong> - Odometer 85,000km (Engine service
+          overdue)
+        </div>
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Truck ID</th>
+              <th>Brand</th>
+              <th>Issue</th>
+              <th>Priority</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a class="btn btn-sm btn-primary" href="#">AD 1998 LI</a></td>
+              <td>Hino</td>
+              <td>Low fuel efficiency</td>
+              <td><span class="badge bg-warning">Medium</span></td>
+            </tr>
+            <tr>
+              <td><a class="btn btn-sm btn-primary" href="#">AD 1997 LG</a></td>
+              <td>Isuzu</td>
+              <td>Overdue engine service</td>
+              <td><span class="badge bg-danger">High</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Brand Statistic</h5>
+        <canvas id="statisticBrand"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Odometer vs Fuel Consumption</h5>
+        <canvas id="odometerChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Fuel Efficiency by Brand</h5>
+        <canvas id="fuelChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock content %} {% block js_block %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script
+  src="https://code.jquery.com/jquery-3.7.1.min.js"
+  integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+  crossorigin="anonymous"
+></script>
+<script>
+  $(document).ready(function () {
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
+    updateStatisticBrandChart();
+  });
+</script>
+<script>
+  var pieChart;
+  function updateStatisticBrandChart() {
+    $.ajax({
+      url: "/maintenance/dinamis/statistic-brand-chart/",
+      method: "GET",
+      success: function (data) {
+        if (pieChart) {
+          pieChart.data.labels = data.labels;
+          pieChart.data.datasets[0].data = data.values;
+          pieChart.update();
+        } else {
+          var ctx = document.getElementById("statisticBrand").getContext("2d");
+          pieChart = new Chart(ctx, {
+            type: "pie",
+            data: {
+              labels: data.labels,
+              datasets: [
+                {
+                  data: data.values,
+                  backgroundColor: data.labels.map(
+                    (_, i) =>
+                      [
+                        "#FF6384",
+                        "#36A2EB",
+                        "#FFCE56",
+                        "#4BC0C0",
+                        "#9966FF",
+                        "#FF9F40",
+                        "#1cc88a",
+                        "#e74a3b",
+                        "#f6c23e",
+                        "#36b9cc",
+                      ][i % 10]
+                  ),
+                },
+              ],
+            },
+          });
+        }
+      },
+    });
+    // Initial load
+  }
+</script>
+<script>
+  // Fuel Efficiency by Brand
+  const fuelCtx = document.getElementById("fuelChart").getContext("2d");
+  new Chart(fuelCtx, {
+    type: "bar",
+    data: {
+      labels: ["Hino", "Isuzu", "Mitsubishi", "UD Trucks"],
+      datasets: [
+        {
+          label: "Avg km/L",
+          data: [5.2, 5.8, 4.1, 5.5],
+          backgroundColor: ["#4e73df", "#1cc88a", "#e74a3b", "#f6c23e"],
+        },
+      ],
+    },
+  });
+
+  // Odometer vs Fuel Consumption
+  const odometerCtx = document.getElementById("odometerChart").getContext("2d");
+  new Chart(odometerCtx, {
+    type: "scatter",
+    data: {
+      datasets: [
+        {
+          label: "Trucks",
+          data: [
+            { x: 45000, y: 5.2 },
+            { x: 85000, y: 4.3 },
+            { x: 120000, y: 3.9 },
+          ],
+          backgroundColor: "#36b9cc",
+        },
+      ],
+    },
+    options: {
+      scales: {
+        x: { title: { display: true, text: "Odometer (km)" } },
+        y: { title: { display: true, text: "Fuel Efficiency (km/L)" } },
+      },
+    },
+  });
+
+  // Fuel Trend
+  const trendCtx = document.getElementById("trendChart").getContext("2d");
+  new Chart(trendCtx, {
+    type: "line",
+    data: {
+      labels: ["Jan", "Feb", "Mar", "Apr"],
+      datasets: [
+        {
+          label: "Avg Fleet Efficiency",
+          data: [5.1, 5.3, 4.9, 4.7],
+          borderColor: "#e74a3b",
+          tension: 0.3,
+        },
+      ],
+    },
+  });
+</script>
+{% endblock %}
