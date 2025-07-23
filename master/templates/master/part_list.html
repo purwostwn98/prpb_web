@@ -1,0 +1,58 @@
+{% extends 'base.html' %} {% block content %} {% load static %}
+
+<h1>All Part</h1>
+<a href="{% url 'create_Part' %}">
+  <button class="btn-create">Tambah Data Part</button>
+</a>
+<table>
+  <thead>
+    <tr>
+      <th>Nama</th>
+      <th>Kode</th>
+      <th>Jenis</th>
+      <th>Deskripsi</th>
+      <th>Kuantitas</th>
+      <th>Harga Satuan</th>
+      <th>Vendor</th>
+      <th>Dibuat Pada</th>
+      <th>Diupdate Pada</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for part in parts %}
+    <tr>
+      <td>{{ part.name }}</td>
+      <td>{{ part.part_code }}</td>
+      <td>{{ part.jenis_part }}</td>
+      <td>{{ part.description }}</td>
+      <td>{{ part.quantity }}</td>
+      <td>{{ part.unit_price }}</td>
+      <td>
+        {% for v in part.vendor.all %}
+          {{ v.name }}{% if not forloop.last %}, {% endif %}
+        {% empty %}
+          Tidak ada vendor
+        {% endfor %}
+      </td>
+      <td>{{ part.created_at }}</td>
+      <td>{{ part.updated_at }}</td>
+      <td>
+        <a href="{% url 'update_Part' part.id %}">
+          <button type="submit" class="btn-update">&equiv;</button>
+        </a>
+        <form action="{% url 'delete_Part' part.id %}" method="POST">
+          {% csrf_token %}
+          <button type="submit" class="btn-delete">&times;</button>
+        </form>
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="10">No posts available.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock content %}
+
+
