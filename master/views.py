@@ -41,7 +41,9 @@ def part_list(request):
 
 # Create views formulir
 def create_Merek(request):
-    context = {}
+    context = { 'page': ['master', 'merek'],
+        'title': 'Daftar Merek'
+        }
     form_merek = MerekForm(request.POST or None, request.FILES or None)
     if request.method == 'POST':
         if form_merek.is_valid():

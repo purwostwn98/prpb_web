@@ -12,10 +12,6 @@ class MerekForm(forms.ModelForm):
             'deskripsi': 'Deskripsi Merek',
         }
 
-        help_texts = {
-            'nama': 'Masukkan nama merek kendaraan.',
-            'deskripsi': 'Masukkan deskripsi singkat tentang merek.',
-        }
 
         error_messages = {
             'nama': {
@@ -25,12 +21,11 @@ class MerekForm(forms.ModelForm):
                 'required': 'Deskripsi merek harus diisi.',
                 'max_length': 'Deskripsi tidak boleh lebih dari 1000 karakter.',
             }
-            
-        }  
-        #widgets = {
-        #    'nama': forms.TextInput(attrs={'class': 'form-control'}),
-        #    'deskripsi': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        #}
+        }
+        widgets = {
+            'nama': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nama merek'}),
+            'deskripsi': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Masukkan deskripsi merek'}),
+        }
 
 class TruckForm(forms.ModelForm):
     class Meta:
