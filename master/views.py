@@ -237,8 +237,6 @@ def delete_Company(request, pk):
         company.delete()
     return redirect('company_list')
     
-    
-
 
 def delete_Vendor(request, pk):
     vendor = get_object_or_404(Vendor, pk=pk)
