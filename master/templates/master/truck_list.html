@@ -1,0 +1,62 @@
+{% extends 'base.html' %} {% block content %} {% load static %}
+
+<h1>All Truck</h1>
+<a href="{% url 'create_Truck' %}">
+  <button class="btn-create">Tambah Data Truck</button>
+</a>
+<table>
+  <thead>
+    <tr>
+      <th>Nomor Polisi</th>
+      <th>Merek</th>
+      <th>Model</th>
+      <th>Tahun</th>
+      <th>Kapasitas</th>
+      <th>Odometer Saat Ini</th>
+      <th>Status Kendaraan</th>
+      <th>Tanggal Akuisisi</th>
+      <th>Nomor Mesin</th>
+      <th>Nomor Chassis</th>
+      <th>Dibuat Pada</th>
+      <th>Diupdate Pada</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for truck in trucks %}
+    <tr>
+      <td>{{ truck.license_plate }}</td>
+      <td>{{ truck.brand }}</td>
+      <td>{{ truck.model }}</td>
+      <td>{{ truck.year }}</td>
+      <td>{{ truck.capacity }}</td>
+      <td>{{ truck.current_odometer }}</td>
+      <td>{{ truck.status }}</td>
+      <td>{{ truck.acquisition_date }}</td>
+      <td>{{ truck.engine_number }}</td>
+      <td>{{ truck.chassis_number }}</td>
+      <td>{{ truck.created_at }}</td>
+      <td>{{ truck.updated_at }}</td>
+      <td>
+
+
+        <a href="{% url 'update_Truck' truck.id %}">
+          <button type="submit" class="btn-update">&equiv;</button>
+        </a>
+        <form action="{% url 'delete_Truck' truck.id %}" method="POST">
+          {% csrf_token %}
+          <button type="submit" class="btn-delete">&times;</button>
+        </form>
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="12">No posts available.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock content %}
+
+
+
+
