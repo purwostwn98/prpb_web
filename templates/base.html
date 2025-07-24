@@ -42,25 +42,20 @@
           <ul id="sidebarnav">
             <!-- ---------------------------------- -->
             <!-- Home -->
-            <!-- ---------------------------------- -->
             <li class="nav-small-cap">
               <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
               <span class="hide-menu">Admin Maintenance</span>
             </li>
-            <!-- ---------------------------------- -->
             <!-- Dashboard -->
-            <!-- ---------------------------------- -->
             <li class="sidebar-item">
-              <a class="sidebar-link active" href="" id="get-url" aria-expanded="false">
+              <a class="sidebar-link {% if page|length > 1 and page.0 == "dashboard" %}active{% endif %}" href="" id="get-url" aria-expanded="false">
                 <span>
                   <i class="ti ti-aperture"></i>
                 </span>
                 <span class="hide-menu">Dashboard</span>
               </a>
             </li>
-            <!-- ---------------------------------- -->
             <!-- Frontend page -->
-            <!-- ---------------------------------- -->
             <li class="sidebar-item">
               <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <span class="d-flex">
@@ -78,11 +73,11 @@
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a href="../main/frontend-aboutpage.html" class="sidebar-link">
+                  <a href="/master/list-merek" class="sidebar-link {% if page|length > 1 and page.1 == "merek" %}active{% endif %}">
                     <div class="round-16 d-flex align-items-center justify-content-center">
                       <i class="ti ti-circle"></i>
                     </div>
-                    <span class="hide-menu">Merk Truck</span>
+                    <span class="hide-menu">Merek Truck</span>
                   </a>
                 </li>
                 <li class="sidebar-item">

@@ -1,11 +1,114 @@
 {% extends 'base.html' %} {% block content %} {% load static %}
 
-<h1>All Merek</h1>
-<ul>
-  {% for merek in mereks %}
-  <li><strong>{{ merek.title }}</strong> — {{ merek.deskripsi }}</li>
-  {% empty %}
-  <li>No posts available.</li>
-  {% endfor %}
-</ul>
-{% endblock content %}
+<div class="card bg-light-info shadow-none position-relative overflow-hidden">
+  <div class="card-body px-4 py-3">
+    <div class="row align-items-center">
+      <div class="col-9">
+        <h4 class="fw-semibold mb-8">Data Merek</h4>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+              <a
+                class="text-muted text-decoration-none"
+                href="{% url 'dashboard' %}"
+                >Home</a
+              >
+            </li>
+            <li class="breadcrumb-item" aria-current="page">Merek</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="col-3">
+        <div class="text-center mb-n5">
+          <img
+            src="{% static 'assets/images/breadcrumb/ChatBc.png' %}"
+            alt=""
+            class="img-fluid mb-n4"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<section>
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="mb-2">
+            <a href="{% url 'create_Merek' %}" class="btn btn-primary"
+              >Tambah Data Merek</a
+            >
+          </div>
+          <div class="table-responsive">
+            <table
+              id="zero_config"
+              class="table border table-striped table-bordered text-nowrap"
+            >
+              <thead>
+                <tr>
+                  <th>Nama</th>
+                  <th>Deskripsi</th>
+                  <th>Created At</th>
+                  <th>Updated At</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for merek in mereks %}
+                <tr>
+                  <td>{{ merek.nama }}</td>
+                  <td>{{ merek.deskripsi }}</td>
+                  <td>{{ merek.created_at }}</td>
+                  <td>{{ merek.updated_at }}</td>
+                  <td>
+                    <a
+                      href="{% url 'update_Merek' merek.id %}"
+                      class="btn btn-warning btn-sm"
+                    >
+                      <i class="ti ti-edit"></i>
+                    </a>
+                    <form
+                      action="{% url 'delete_Merek' merek.id %}"
+                      method="POST"
+                      class="d-inline"
+                    >
+                      {% csrf_token %}
+                      <button
+                        type="submit"
+                        class="btn btn-danger btn-sm"
+                        onclick="return confirm('Are you sure you want to delete this item?');"
+                      >
+                        <i class="ti ti-trash"></i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5">No posts available.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock content %} {% block js_block %}
+<!-- DataTables -->
+<link
+  rel="stylesheet"
+  href="{% static 'assets/libs/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}"
+/>
+<script src="{% static 'assets/libs/datatables.net/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'assets/libs/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+  $(document).ready(function () {
+    $("#zero_config").DataTable();
+  });
+</script>
+{% endblock js_block %}

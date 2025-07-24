@@ -1,5 +1,6 @@
 from django.db import models # type: ignore
 
+
 # Merek == Brand.
 class Merek(models.Model):
     nama = models.CharField(max_length=255)
@@ -8,7 +9,7 @@ class Merek(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.nama} - {self.deskripsi}"
+        return self.nama # perubahan: mengembalikan nama merek saja
     
 class Truck(models.Model):
     STATUS_CHOICES = [
@@ -59,7 +60,7 @@ class Vendor(models.Model):
     
 class Part(models.Model):
     JENIS_PART_CHOICES = [
-        ('filer', 'Filer'),
+        ('filter', 'Filter'),
         # ('oli', 'Oli'),
         # ('ban', 'Ban'),
         # ('suku_cadang', 'Suku Cadang'),

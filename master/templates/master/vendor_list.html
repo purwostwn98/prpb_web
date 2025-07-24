@@ -1,0 +1,52 @@
+{% extends 'base.html' %} {% block content %} {% load static %}
+
+<h1>All Vendor</h1>
+<a href="{% url 'create_Vendor' %}">
+  <button class="btn-create">Tambah Data Vendor</button>
+</a>
+
+
+<table>
+  <thead>
+    <tr>
+      <th>Nama</th>
+      <th>Alamat</th>
+      <th>Nomor Telepon</th>
+      <th>Email</th>
+      <th>Logo</th>
+      <th>Dibuat Pada</th>
+      <th>Diupdate Pada</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for vendor in vendors %}
+    <tr>
+      <td>{{ vendor.name }}</td>
+      <td>{{ vendor.address }}</td>
+      <td>{{ vendor.phone_number }}</td>
+      <td>{{ vendor.email }}</td>
+      <td>{{ vendor.logo }}</td>
+      <td>{{ vendor.created_at }}</td>
+      <td>{{ vendor.updated_at }}</td>
+      <td>
+
+        
+
+        <a href="{% url 'update_Vendor' vendor.id %}">
+          <button type="submit" class="btn-update">&equiv;</button>
+        </a>
+        <form action="{% url 'delete_Vendor' vendor.id %}" method="POST">
+          {% csrf_token %}
+          <button type="submit" class="btn-delete">&times;</button>
+        </form>
+
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="7">No posts available.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock content %}
