@@ -15,7 +15,7 @@ def dashboard(request):
     View function to render the dashboard page.
     """
     truck_count = Truck.objects.count()
-    context = {'truck_count': truck_count}
+    context = {'truck_count': truck_count, 'page': ['dashboard', 'dashboard'], 'title': 'Dashboard'}
     return render(request, 'maintenance/dashboard.html', context)
 
 
