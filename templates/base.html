@@ -65,14 +65,6 @@
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a href="/master/list-truck" class="sidebar-link {% if page|length > 1 and page.1 == "merek" %}active{% endif %}">
-                    <div class="round-16 d-flex align-items-center justify-content-center">
-                      <i class="ti ti-circle"></i>
-                    </div>
-                    <span class="hide-menu">Truck</span>
-                  </a>
-                </li>
-                <li class="sidebar-item">
                   <a href="/master/list-merek" class="sidebar-link {% if page|length > 1 and page.1 == "merek" %}active{% endif %}">
                     <div class="round-16 d-flex align-items-center justify-content-center">
                       <i class="ti ti-circle"></i>
@@ -81,19 +73,35 @@
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a href="../main/frontend-contactpage.html" class="sidebar-link">
+                  <a href="/master/list-truck" class="sidebar-link {% if page|length > 1 and page.1 == "merek" %}active{% endif %}">
                     <div class="round-16 d-flex align-items-center justify-content-center">
                       <i class="ti ti-circle"></i>
                     </div>
-                    <span class="hide-menu">Tipe Truck</span>
+                    <span class="hide-menu">Truck</span>
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a href="../main/frontend-blogpage.html" class="sidebar-link">
+                  <a href="/master/list-company" class="sidebar-link {% if page|length > 1 and page.1 == "merek" %}active{% endif %}">
                     <div class="round-16 d-flex align-items-center justify-content-center">
                       <i class="ti ti-circle"></i>
                     </div>
-                    <span class="hide-menu">Filter</span>
+                    <span class="hide-menu">Company</span>
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a href="/master/list-vendor" class="sidebar-link {% if page|length > 1 and page.1 == "merek" %}active{% endif %}">
+                    <div class="round-16 d-flex align-items-center justify-content-center">
+                      <i class="ti ti-circle"></i>
+                    </div>
+                    <span class="hide-menu">Vendor</span>
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a href="/master/list-part" class="sidebar-link {% if page|length > 1 and page.1 == "merek" %}active{% endif %}">
+                    <div class="round-16 d-flex align-items-center justify-content-center">
+                      <i class="ti ti-circle"></i>
+                    </div>
+                    <span class="hide-menu">Part</span>
                   </a>
                 </li>
               </ul>

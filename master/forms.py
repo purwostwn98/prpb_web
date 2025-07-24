@@ -129,15 +129,6 @@ class CompanyForm(forms.ModelForm):
             'email': 'Email Perusahaan',
             'logo': 'Logo Perusahaan',
         }
-
-        help_texts = {
-            'name': 'Masukkan nama perusahaan.',
-            'address': 'Masukkan alamat lengkap perusahaan.',
-            'phone_number': 'Masukkan nomor telepon perusahaan.',
-            'email': 'Masukkan alamat email perusahaan.',
-            'logo': 'Unggah logo perusahaan (opsional).',
-        }
-
         error_messages={
             'name':{
                 'required': 'Nama perusahaan harus diisi.',
@@ -159,14 +150,13 @@ class CompanyForm(forms.ModelForm):
                 'invalid': 'Unggah file logo yang valid (format gambar seperti PNG, JPEG, atau GIF).',
             }
         }
-        # fields = ['name', 'address', 'phone_number', 'email', 'logo']
-        # widgets = {
-        #     'name': forms.TextInput(attrs={'class': 'form-control'}),
-        #     'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        #     'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
-        #     'email': forms.EmailInput(attrs={'class': 'form-control'}),
-        #     'logo': forms.ClearableFileInput(attrs={'class': 'form-control-file'}),
-        # }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nama perusahaan'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Masukkan alamat lengkap perusahaan'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nomor telepon perusahaan'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan alamat email perusahaan'}),
+            'logo': forms.ClearableFileInput(attrs={'class': 'form-control-file'}),
+        }
 
 class VendorForm(forms.ModelForm):
     class Meta:
