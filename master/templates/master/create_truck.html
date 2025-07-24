@@ -21,13 +21,19 @@
         <div class="form-container">
             <form method="POST">
                 {% csrf_token %}
+                <div class="row" class="d-flex justify-content-between align-items-center">
+                    <div class="col">
+                        <h2>Formulir Data Truck</h2>
+                    </div>
+                    <div class="col text-end">
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='{% url 'truck_list' %}'">Lihat Semua Truck</button>
+                    </div>
                 <div class="content-form">
                     <h1>Data Truck</h1>
                     {{form_truck.as_p}}
                 </div>
                 <button type="submit" class="btn btn-primary">Submit</button>
             </form>
-            <a href="{% url 'truck_list' %}">Lihat Semua Truck</a>
         </div>
 
     </div>

@@ -44,20 +44,6 @@ class TruckForm(forms.ModelForm):
             "engine_number": "Nomor Mesin",
             "chassis_number": "Nomor Rangka",
         }
-
-        help_texts = {
-            "license_plate": "Masukkan nomor polisi kendaraan.",
-            "brand":"Masukkan nama merek kendaraan.",
-            "model": "Masukkan model kendaraan.",
-            "year": "Masukkan tahun kendaraan.",
-            "capacity" :"Masukkan kapasitas kendaraan (liter).",
-            "current_odometer": "Masukkan odometer saat ini (km).",
-            "status": "Pilih status kendaraan.",
-            "acquisition_date": "Masukkan tanggal akuisisi kendaraan (YYYY-MM-DD).",
-            "engine_number": "Masukkan nomor mesin kendaraan.",
-            "chassis_number": "Masukkan nomor rangka kendaraan.",
-        }
-
         error_messages = {
             "license_plate" :{
                 'required': 'Nomor polisi harus diisi.',
@@ -99,23 +85,18 @@ class TruckForm(forms.ModelForm):
                 'max_length': 'Nomor rangka tidak boleh lebih dari 255 karakter.',
             },
         }
-        # fields = [
-        #     'license_plate', 'brand', 'model', 'year', 
-        #     'capacity', 'current_odometer', 'status', 
-        #     'acquisition_date', 'engine_number', 'chassis_number'
-        # ]
-        #widgets = {
-        #    'license_plate': forms.TextInput(attrs={'class': 'form-control'}),
-        #    'brand': forms.Select(attrs={'class': 'form-control'}),
-        #    'model': forms.TextInput(attrs={'class': 'form-control'}),
-        #    'year': forms.NumberInput(attrs={'class': 'form-control'}),
-        #    'capacity': forms.NumberInput(attrs={'class': 'form-control'}),
-        #    'current_odometer': forms.NumberInput(attrs={'class': 'form-control'}),
-        #    'status': forms.Select(attrs={'class': 'form-control'}),
-        #    'acquisition_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-        #    'engine_number': forms.TextInput(attrs={'class': 'form-control'}),
-        #    'chassis_number': forms.TextInput(attrs={'class': 'form-control'}),
-        #}
+        widgets = {
+            'license_plate': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nomor polisi'}),
+            'brand': forms.Select(attrs={'class': 'form-control'}),
+            'model': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan model kendaraan'}),
+            'year': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan tahun kendaraan'}),
+            'capacity': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan kapasitas (liter)'}),
+            'current_odometer': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan odometer saat ini'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
+            'acquisition_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'engine_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nomor mesin'}),
+            'chassis_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nomor rangka'}),
+        }
 
 
 class CompanyForm(forms.ModelForm):
