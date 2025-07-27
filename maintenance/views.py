@@ -14,8 +14,9 @@ def dashboard(request):
     """
     View function to render the dashboard page.
     """
-    truck_count = Truck.objects.count()
-    context = {'truck_count': truck_count, 'page': ['dashboard', 'dashboard'], 'title': 'Dashboard'}
+    truck_count = Truck.objects.count() 
+    trucks = Truck.objects.all().order_by('-year')
+    context = { 'trucks': trucks, 'truck_count': truck_count, 'page': ['dashboard', 'dashboard'], 'title': 'Dashboard'}
     return render(request, 'maintenance/dashboard.html', context)
 
 
@@ -93,6 +94,7 @@ def dashboard_truck(request):
         reliability = (pembagi_reliability - jumlah_gagal) / pembagi_reliability * 100 if pembagi_reliability > 0 else 0
 
     context = {
+        'page': ['dashboard', 'dashboard'], 'title': 'Dashboard Truck',
         'truck_data': truck_data,
         'oee_value': round(oee_value,2),
         'mttf': round(mttf,2),

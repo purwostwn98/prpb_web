@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Login - Truck Management{% endblock %}</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+          url("https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        min-height: 100vh;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .login-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        overflow: hidden;
+        max-width: 400px;
+        width: 100%;
+      }
+
+      .login-header {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        color: white;
+        padding: 30px 20px;
+        text-align: center;
+      }
+
+      .login-header i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: #f39c12;
+      }
+
+      .login-body {
+        padding: 40px 30px;
+      }
+
+      .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 12px 15px;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus {
+        border-color: #f39c12;
+        box-shadow: 0 0 0 0.2rem rgba(243, 156, 18, 0.25);
+      }
+
+      .btn-login {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        border: none;
+        border-radius: 10px;
+        padding: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+        width: 100%;
+      }
+
+      .btn-login:hover {
+        background: linear-gradient(135deg, #e67e22, #d35400);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+      }
+
+      .alert {
+        border-radius: 10px;
+        border: none;
+      }
+
+      .input-group-text {
+        background: transparent;
+        border: 2px solid #e9ecef;
+        border-right: none;
+        color: #6c757d;
+      }
+
+      .input-group .form-control {
+        border-left: none;
+      }
+
+      .input-group:focus-within .input-group-text {
+        border-color: #f39c12;
+        color: #f39c12;
+      }
+
+      .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .errorlist li {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-header">
+          <i class="fas fa-truck"></i>
+          <h3>Fleet Manager</h3>
+          <p>Truck Management System</p>
+        </div>
+        <div class="login-body">
+          <!-- Django Messages -->
+          {% if messages %} {% for message in messages %}
+          <div
+            class="alert alert-{{ message.tags }} alert-dismissible fade show"
+            role="alert"
+          >
+            {{ message }}
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="alert"
+            ></button>
+          </div>
+          {% endfor %} {% endif %}
+
+          <!-- Login Form -->
+          <form method="post">
+            {% csrf_token %}
+
+            <!-- Username Field -->
+            <div class="mb-3">
+              <div class="input-group">
+                <span class="input-group-text">
+                  <i class="fas fa-user"></i>
+                </span>
+                <input
+                  type="text"
+                  name="username"
+                  class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                  placeholder="Username"
+                  value="{% if form.username.value %}{{ form.username.value }}{% endif %}"
+                  required
+                  autofocus
+                />
+              </div>
+              {% if form.username.errors %}
+              <ul class="errorlist">
+                {% for error in form.username.errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+              {% endif %}
+            </div>
+
+            <!-- Password Field -->
+            <div class="mb-3">
+              <div class="input-group">
+                <span class="input-group-text">
+                  <i class="fas fa-lock"></i>
+                </span>
+                <input
+                  type="password"
+                  name="password"
+                  class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                  placeholder="Password"
+                  required
+                />
+              </div>
+              {% if form.password.errors %}
+              <ul class="errorlist">
+                {% for error in form.password.errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+              {% endif %}
+            </div>
+
+            <!-- Non-field errors (like invalid login) -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for error in form.non_field_errors %} {{ error }} {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Remember Me -->
+            <div class="mb-4 form-check">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id="rememberMe"
+                name="remember_me"
+              />
+              <label class="form-check-label" for="rememberMe">
+                Remember me
+              </label>
+            </div>
+
+            <!-- Hidden next field for redirect after login -->
+            {% if request.GET.next %}
+            <input type="hidden" name="next" value="{{ request.GET.next }}" />
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary btn-login">
+              <i class="fas fa-sign-in-alt me-2"></i>Login
+            </button>
+
+            <div class="text-center mt-4">
+              <a href="#" class="text-decoration-none" style="color: #6c757d">
+                <i class="fas fa-question-circle me-1"></i>Forgot your password?
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Auto-dismiss alerts after 5 seconds
+      setTimeout(function () {
+        var alerts = document.querySelectorAll(".alert");
+        alerts.forEach(function (alert) {
+          var bsAlert = new bootstrap.Alert(alert);
+          bsAlert.close();
+        });
+      }, 5000);
+
+      // Add loading state to login button
+      document.querySelector("form").addEventListener("submit", function (e) {
+        const button = document.querySelector(".btn-login");
+        const originalText = button.innerHTML;
+
+        button.innerHTML =
+          '<i class="fas fa-spinner fa-spin me-2"></i>Logging in...';
+        button.disabled = true;
+
+        // Re-enable button if form validation fails
+        setTimeout(() => {
+          if (!this.checkValidity()) {
+            button.innerHTML = originalText;
+            button.disabled = false;
+          }
+        }, 100);
+      });
+    </script>
+  </body>
+</html>

@@ -48,7 +48,7 @@
             </li>
             <!-- Dashboard -->
             <li class="sidebar-item">
-              <a class="sidebar-link {% if page|length > 1 and page.0 == "dashboard" %}active{% endif %}" href="" id="get-url" aria-expanded="false">
+              <a href="{% url 'dashboard' %}" class="sidebar-link {% if page|length > 1 and page.0 == "dashboard" %}active{% endif %}" aria-expanded="false">
                 <span>
                   <i class="ti ti-aperture"></i>
                 </span>

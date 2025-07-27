@@ -63,37 +63,67 @@
       <div class="card-body">
         <h5 class="card-title mb-3">⚠️ Maintenance Alerts</h5>
         <div class="alert alert-warning">
-          <strong>Truck #7 (Hino)</strong> - Fuel efficiency dropped 15%
-          (Clogged filter suspected)
+          <strong>Truck AG8957UV</strong> - Fuel pressure dropped 15% (Clogged
+          filter suspected)
         </div>
         <div class="alert alert-danger">
-          <strong>Truck #12 (Isuzu)</strong> - Odometer 85,000km (Engine service
-          overdue)
+          <strong>Truck AG9822UV</strong> - Odometer 85,000km (Fuel filter
+          service overdue)
         </div>
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>Truck ID</th>
-              <th>Brand</th>
-              <th>Issue</th>
-              <th>Priority</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><a class="btn btn-sm btn-primary" href="#">AD 1998 LI</a></td>
-              <td>Hino</td>
-              <td>Low fuel efficiency</td>
-              <td><span class="badge bg-warning">Medium</span></td>
-            </tr>
-            <tr>
-              <td><a class="btn btn-sm btn-primary" href="#">AD 1997 LG</a></td>
-              <td>Isuzu</td>
-              <td>Overdue engine service</td>
-              <td><span class="badge bg-danger">High</span></td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="card mt-4">
+          <div class="card-body">
+            <h5 class="card-title mb-3">Truck List</h5>
+            <div class="table-responsive">
+              <table
+                class="table table-striped table-bordered"
+                id="zero_config"
+              >
+                <thead>
+                  <tr>
+                    <th>License Plate</th>
+                    <th>Brand</th>
+                    <th>Model</th>
+                    <th>Year</th>
+                    <th>Odometer (km)</th>
+                    <th>Last Service</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for truck in trucks %}
+                  <tr>
+                    <td>{{ truck.license_plate }}</td>
+                    <td>{{ truck.brand }}</td>
+                    <td>{{ truck.model }}</td>
+                    <td>{{ truck.year }}</td>
+                    <td>{{ truck.odometer }}</td>
+                    <td>{{ truck.last_service_date|date:"Y-m-d" }}</td>
+                    <td>
+                      {% if truck.status == 'active' %}
+                      <span class="badge bg-success">Active</span>
+                      {% elif truck.status == 'in_maintenance' %}
+                      <span class="badge bg-warning">In Maintenance</span>
+                      {% else %}
+                      <span class="badge bg-danger">Inactive</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <a
+                        class="btn btn-primary btn-sm"
+                        href="{% url 'dashboard-truck' %}?id={{ truck.id }}"
+                        data-truck-id="{{ truck.id }}"
+                      >
+                        Detail
+                      </a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -108,36 +138,21 @@
       </div>
     </div>
   </div>
-  <div class="col-md-8">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="card-title">Odometer vs Fuel Consumption</h5>
-        <canvas id="odometerChart"></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="card-title">Fuel Efficiency by Brand</h5>
-        <canvas id="fuelChart"></canvas>
-      </div>
-    </div>
-  </div>
 </div>
 
 {% endblock content %} {% block js_block %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script
-  src="https://code.jquery.com/jquery-3.7.1.min.js"
-  integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
-  crossorigin="anonymous"
-></script>
+<link
+  rel="stylesheet"
+  href="{% static 'assets/libs/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}"
+/>
+<script src="{% static 'assets/libs/datatables.net/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'assets/libs/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
 <script>
   $(document).ready(function () {
+    $("#zero_config").DataTable();
     // Initialize tooltips
     $('[data-toggle="tooltip"]').tooltip();
-
     updateStatisticBrandChart();
   });
 </script>
@@ -198,48 +213,6 @@
           label: "Avg km/L",
           data: [5.2, 5.8, 4.1, 5.5],
           backgroundColor: ["#4e73df", "#1cc88a", "#e74a3b", "#f6c23e"],
-        },
-      ],
-    },
-  });
-
-  // Odometer vs Fuel Consumption
-  const odometerCtx = document.getElementById("odometerChart").getContext("2d");
-  new Chart(odometerCtx, {
-    type: "scatter",
-    data: {
-      datasets: [
-        {
-          label: "Trucks",
-          data: [
-            { x: 45000, y: 5.2 },
-            { x: 85000, y: 4.3 },
-            { x: 120000, y: 3.9 },
-          ],
-          backgroundColor: "#36b9cc",
-        },
-      ],
-    },
-    options: {
-      scales: {
-        x: { title: { display: true, text: "Odometer (km)" } },
-        y: { title: { display: true, text: "Fuel Efficiency (km/L)" } },
-      },
-    },
-  });
-
-  // Fuel Trend
-  const trendCtx = document.getElementById("trendChart").getContext("2d");
-  new Chart(trendCtx, {
-    type: "line",
-    data: {
-      labels: ["Jan", "Feb", "Mar", "Apr"],
-      datasets: [
-        {
-          label: "Avg Fleet Efficiency",
-          data: [5.1, 5.3, 4.9, 4.7],
-          borderColor: "#e74a3b",
-          tension: 0.3,
         },
       ],
     },
