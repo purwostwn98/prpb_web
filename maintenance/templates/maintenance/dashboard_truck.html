@@ -43,7 +43,8 @@
   <div class="col-md-12">
     <div class="card border-info">
       <div class="card-header bg-info text-white">
-        <i class="fas fa-robot me-2"></i>Predictive Maintenance
+        <i class="fas fa-robot me-2"></i>Preventive Maintenance (Using
+        Distribution)
       </div>
       <div class="card-body">
         <div class="row">
@@ -120,6 +121,77 @@
           {% endif %}
         </div>
         <small>{{ persentase_mttf }}% from ideal (10,000 KM)</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-2">
+  <div class="col-md-12">
+    <div class="card border-info">
+      <div class="card-header bg-info text-white">
+        <i class="fas fa-robot me-2"></i>Preventive Maintenance (Using Machine
+        Learning)
+      </div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <tr>
+                  <td scope="col">Truck Age at Last Service (in year)</td>
+                  <td scope="col">:</td>
+                  <td id="umur-service-terakhir" scope="col">Loading...</td>
+                </tr>
+                <tr>
+                  <td scope="col">Month of Last Service</td>
+                  <td scope="col">:</td>
+                  <td id="month-of-service" scope="col">Loading...</td>
+                </tr>
+                <tr>
+                  <td scope="col">Last TTF (in KM)</td>
+                  <td scope="col">:</td>
+                  <td id="last-ttf-km" scope="col">Loading...</td>
+                </tr>
+                <tr>
+                  <td scope="col">Last TTF (in Days)</td>
+                  <td scope="col">:</td>
+                  <td id="last-ttf-days" scope="col">Loading...</td>
+                </tr>
+                <tr>
+                  <td scope="col">Rolling Average KM :3</td>
+                  <td scope="col">:</td>
+                  <td id="rolling_avg_km_3" scope="col">Loading...</td>
+                </tr>
+                <tr>
+                  <td scope="col">Rolling Average Days :3</td>
+                  <td scope="col">:</td>
+                  <td id="rolling_avg_days_3" scope="col">Loading...</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-4">
+            <h5><i class="fas fa-truck me-2"></i>Asset</h5>
+            <p>
+              <strong>{{ truck_data.license_plate }}</strong><br />
+              Type : <strong>{{ truck_data.model }}</strong> <br />
+              Current Odometer:
+              <strong>{{ truck_data.current_odometer }} </strong>
+            </p>
+          </div>
+          <div class="col-md-4">
+            <h5><i class="fas fa-calendar-check me-2"></i>Next Service</h5>
+            <p>Estimated: <strong>14 Juni 2025 | 168,000,00</strong></p>
+            <p>
+              Based on:
+              <span class="badge bg-warning">Odometer</span>
+              <span class="badge bg-warning">Maintenance History</span>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -204,6 +276,7 @@
 <input type="hidden" name="" id="oee" value="{{ oee_value }}" />
 {% endblock content %} {% block js_block %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script
   src="https://code.jquery.com/jquery-3.7.1.min.js"
   integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
@@ -213,6 +286,7 @@
 <script>
   $(document).ready(function () {
     showMttfValue();
+    show_and_get_input_data();
   });
 </script>
 
@@ -485,6 +559,35 @@
     distributionChart.update();
     const distributionName = document.getElementById("distribution-name");
     distributionName.innerHTML = `<i class="fas fa-chart-area me-2"></i> Distribution: ${data.distribution_name}`;
+  }
+</script>
+
+{% comment %} get data input for api model {% endcomment %}
+<script>
+  function show_and_get_input_data() {
+    var idTruck = document.getElementById("id-truck").value;
+    $.ajax({
+      url: "/maintenance/dinamis/get-input-data/" + idTruck + "/",
+      type: "GET",
+      dataType: "json",
+      success: function (data) {
+        // Log the received data for debugging
+        console.log("Input Data:", data);
+        $("#umur-service-terakhir").html(data.truck_age_at_service);
+        $("#month-of-service").html(data.month_of_service);
+        $("#last-ttf-km").html(data.last_ttf_km);
+        $("#last-ttf-days").html(data.last_ttf_days);
+        $("#rolling_avg_km_3").html(data.rolling_avg_km_3);
+        $("#rolling_avg_days_3").html(data.rolling_avg_days_3);
+
+        // mttfValue.innerHTML = data.mttf + " KM";
+        // Update reliability gauge with the fetched value
+      },
+      error: function (xhr, status, error) {
+        console.error("Error fetching MTTF data:", error);
+        mttfValue.innerHTML = "MTTF: Error fetching data";
+      },
+    });
   }
 </script>
 {% endblock %}

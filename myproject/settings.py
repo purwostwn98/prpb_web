@@ -26,8 +26,7 @@ SECRET_KEY = 'django-insecure-gg_fxn*g2klz=myoj9x=jfngnakn%kgsliyj*u#@$%trhx1d9e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['sofipremas.ums.ac.id', 'localhost', '127.0.0.1']
 
 # Application definition
 
@@ -40,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'master',
     'maintenance',
-    'landing'
+    'landing',
+    'core'
 ]
 
 MIDDLEWARE = [

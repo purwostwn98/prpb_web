@@ -1,4 +1,5 @@
 
+import datetime
 from itertools import count
 from django.shortcuts import render # type: ignore
 from django.http import JsonResponse # type: ignore
@@ -9,6 +10,8 @@ from django.db.models import Count # type: ignore
 
 import numpy as np # type: ignore
 from reliability.Fitters import Fit_Everything # type: ignore
+
+from core.utils import *
 
 def dashboard(request):
     """
@@ -25,6 +28,8 @@ def dashboard_truck(request):
     View function to render the dashboard page.
     """
     truck_id = request.GET.get('id')
+    last_maintenance = get_last_maintenance_record(truck_id)
+    print(last_maintenance.service_date)
     truck_data = Truck.objects.filter(id=truck_id).first()
     oee_value = None
     if truck_data:
@@ -151,8 +156,65 @@ def getMttfValue(request, id):
             'values': array_ttf,
             'distribution_name': distribution_name,
         }
+        # print(distributin_data)
+    return JsonResponse({'mttf': round(mttf,2), 'distribution_name': distribution_name, 'reliability_score': round(reliability_score,2), 'distribution_data': distributin_data})
 
-        print(distributin_data)
+def getInputDataML(request, id):
+    """
+    View function to get the input data for a specific truck.
+    """
+    truck_id = id
+    truck_data = Truck.objects.filter(id=truck_id).first()
+    last_maintenance = get_last_maintenance_record(truck_id)
+    # get truck age at service
+    if last_maintenance and truck_data and truck_data.year:
+        truck_manufacture_date = datetime.date(truck_data.year, 1, 1) # Assumes the truck was made on Jan 1st of its year
+        # timedelta does not have a .years attribute. Calculate it from days.
+        truck_age_at_service = (last_maintenance.service_date - truck_manufacture_date).days / 365.25
+    else:
+        truck_age_at_service =  1
+    
+    # get month of service date
+    month_of_service = last_maintenance.service_date.month if last_maintenance else None
+
+    # get last ttf km
+    last_ttf_km = 0
+    last_ttf_days = 0
+    if last_maintenance:
+         # get last second maintenance record
+         i = 1
+         second_maintenance_record = get_second_last_maintenance_record(truck_id, i)
+         if second_maintenance_record:
+            last_ttf_km = last_maintenance.odometer_reading - second_maintenance_record.odometer_reading
+            last_ttf_days = (last_maintenance.service_date - second_maintenance_record.service_date).days
+            while last_ttf_km < 1000:
+                i += 1
+                second_maintenance_record = get_second_last_maintenance_record(truck_id, i)
+                last_ttf_km = last_maintenance.odometer_reading - second_maintenance_record.odometer_reading
+                last_ttf_days = (last_maintenance.service_date - second_maintenance_record.service_date).days
+    
+    # get rolling avg 3
+    rolling_avg_km_3 = get_rolling_avg_3(truck_id)['ttf_average']
+    rolling_avg_days_3 = get_rolling_avg_3(truck_id)['days_average']
     
 
-    return JsonResponse({'mttf': round(mttf,2), 'distribution_name': distribution_name, 'reliability_score': round(reliability_score,2), 'distribution_data': distributin_data})
+
+
+
+    # Django model instances are not directly JSON serializable.
+    # Create a dictionary with the data you need.
+    truck_data_dict = {
+        'id': truck_data.id,
+        'year': truck_data.year,
+    } if truck_data else None
+
+    context = {
+        'truck_data': truck_data_dict,
+        'truck_age_at_service': round(truck_age_at_service, 2),
+        'month_of_service': month_of_service,
+        'last_ttf_km': last_ttf_km,
+        'last_ttf_days' : last_ttf_days,
+        'rolling_avg_km_3': round(rolling_avg_km_3, 2),
+        'rolling_avg_days_3': round(rolling_avg_days_3, 2),
+    }
+    return JsonResponse(context)
