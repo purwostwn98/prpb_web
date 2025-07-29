@@ -29,7 +29,6 @@ def dashboard_truck(request):
     """
     truck_id = request.GET.get('id')
     last_maintenance = get_last_maintenance_record(truck_id)
-    print(last_maintenance.service_date)
     truck_data = Truck.objects.filter(id=truck_id).first()
     oee_value = None
     if truck_data:
@@ -176,6 +175,7 @@ def getInputDataML(request, id):
     
     # get month of service date
     month_of_service = last_maintenance.service_date.month if last_maintenance else None
+    day_of_week = last_maintenance.service_date.weekday() if last_maintenance else None
 
     # get last ttf km
     last_ttf_km = 0
@@ -195,10 +195,54 @@ def getInputDataML(request, id):
     
     # get rolling avg 3
     rolling_avg_km_3 = get_rolling_avg_3(truck_id)['ttf_average']
+    rolling_avg_km_std = get_rolling_avg_3(truck_id)['ttf_std']
     rolling_avg_days_3 = get_rolling_avg_3(truck_id)['days_average']
-    
+    rolling_avg_days_std = get_rolling_avg_3(truck_id)['days_std']
 
 
+    # get comulative service
+    comulative_service = get_commulative_service(truck_id)
+
+    # get model_HINO TYPE
+    # get merk
+    # merek = truck_data.brand.nama if truck_data and truck_data.brand else None
+    # get model
+    model = truck_data.model if truck_data else None
+    model_name = 'model_' + str(model).upper()  
+
+    payload_data = {
+        "truck_age_at_service": int(truck_age_at_service),
+        "month_of_service": int(month_of_service),
+        "day_of_week": int(day_of_week),
+        "last_ttf_km": last_ttf_km,
+        "last_ttf_days": int(last_ttf_days),
+        "rolling_avg_km_3": rolling_avg_km_3,
+        "rolling_std_km_3": rolling_avg_km_std,
+        "rolling_avg_days_3": rolling_avg_days_3,
+        "rolling_std_days_3": rolling_avg_days_std,
+        "cumulative_replacements": int(comulative_service),
+        "cumulative_avg_km": get_commulative_km_average(truck_id),
+        "cumulative_avg_days": get_commulative_days_average(truck_id),
+        "model_" + str(model).upper(): 1
+    }
+
+    predicted = get_prediction_from_api(payload_data)
+    predicted_days = predicted['predicted_ttf_days']
+    predicted_km = predicted['predicted_ttf_km']
+
+
+    # get next service date
+    last_service_date = last_maintenance.service_date if last_maintenance else None
+    # print(last_service_date)
+    # print("ongkeh")
+    if last_service_date:
+        next_service_date = last_service_date + datetime.timedelta(days=predicted_days)
+    else:
+        next_service_date = None
+
+    # next service km
+    next_service_km = last_maintenance.odometer_reading + predicted_km if last_maintenance else None
+    # print(next_service_km)
 
 
     # Django model instances are not directly JSON serializable.
@@ -216,5 +260,14 @@ def getInputDataML(request, id):
         'last_ttf_days' : last_ttf_days,
         'rolling_avg_km_3': round(rolling_avg_km_3, 2),
         'rolling_avg_days_3': round(rolling_avg_days_3, 2),
+        'count_commulative_service': comulative_service,
+        'commulative_km_average': get_commulative_km_average(truck_id),
+        'commulative_days_average': get_commulative_days_average(truck_id),
+        'truck_name':  "model_" + str(model).upper(),
+        'predicted_ttf_days': predicted_days if predicted_days else 0,
+        'predicted_ttf_km': predicted_km if predicted_km else 0,
+        'next_service_date': next_service_date.strftime('%Y-%m-%d') if next_service_date else None,
+        'next_service_km': next_service_km if next_service_km else 0,
+
     }
     return JsonResponse(context)

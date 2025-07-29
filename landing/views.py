@@ -27,3 +27,15 @@ def index(request):
         else:
             messages.error(request, 'Invalid username or password.')
     return render(request, 'landing/index.html')
+
+def logout_view(request):
+    logout(request)
+    messages.success(request, 'Logout successful!')
+    return redirect('index')
+
+# class DashboardView(TemplateView):
+#     template_name = 'landing/dashboard.html'
+
+# class LoginView(LoginView):
+#     template_name = 'landing/login.html'
+#     redirect_authenticated_user = True

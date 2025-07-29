@@ -44,27 +44,35 @@
     <div class="card border-info">
       <div class="card-header bg-info text-white">
         <i class="fas fa-robot me-2"></i>Preventive Maintenance (Using
-        Distribution)
+        Probability Distribution)
       </div>
       <div class="card-body">
         <div class="row">
-          <div class="col-md-4">
+          <div class="col-md-6">
             <h5><i class="fas fa-truck me-2"></i>Asset</h5>
             <p>
               <strong>{{ truck_data.license_plate }}</strong><br />
               Type : <strong>{{ truck_data.model }}</strong> <br />
-              Current Odometer:
+              {% comment %} Current Odometer:
               <strong>{{ truck_data.current_odometer }} </strong>
+              {% endcomment %}
             </p>
           </div>
-          <div class="col-md-4">
-            <h5><i class="fas fa-calendar-check me-2"></i>Next Service</h5>
-            <p>Estimated: <strong>14 Juni 2025 | 168,000,00</strong></p>
-            <p>
-              Based on:
-              <span class="badge bg-warning">Odometer</span>
-              <span class="badge bg-warning">Maintenance History</span>
-            </p>
+          <div class="col-md-6">
+            <h5 class="card-title" id="mttf-dist">MTTF</h5>
+            <h1 class="text-primary" id="mttf-value">Loading ... KM</h1>
+            <p class="text-muted">(Last {{ jumlah_maintenance }} repairs)</p>
+            <div class="progress mt-2">
+              {% if persentase_mttf > 100 %}
+              <div class="progress-bar bg-success" style="width: 100%"></div>
+              {% else %}
+              <div
+                class="progress-bar bg-warning"
+                style="width: {{ persentase_mttf }}%"
+              ></div>
+              {% endif %}
+            </div>
+            <small>{{ persentase_mttf }}% from ideal (10,000 KM)</small>
           </div>
         </div>
       </div>
@@ -107,20 +115,11 @@
   <div class="col-md-6">
     <div class="card">
       <div class="card-body text-center">
-        <h5 class="card-title" id="mttf-dist">MTTF</h5>
-        <h1 class="text-primary" id="mttf-value">Loading ... KM</h1>
-        <p class="text-muted">(Last {{ jumlah_maintenance }} repairs)</p>
-        <div class="progress mt-2">
-          {% if persentase_mttf > 100 %}
-          <div class="progress-bar bg-success" style="width: 100%"></div>
-          {% else %}
-          <div
-            class="progress-bar bg-warning"
-            style="width: {{ persentase_mttf }}%"
-          ></div>
-          {% endif %}
+        <canvas id="distributionChart" height="150"></canvas>
+        <div class="alert alert-info mt-3" id="distribution-name">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Loading distribution data...
         </div>
-        <small>{{ persentase_mttf }}% from ideal (10,000 KM)</small>
       </div>
     </div>
   </div>
@@ -168,28 +167,57 @@
                   <td scope="col">:</td>
                   <td id="rolling_avg_days_3" scope="col">Loading...</td>
                 </tr>
+                <tr>
+                  <td scope="col">Count Cumulative Service</td>
+                  <td scope="col">:</td>
+                  <td id="count-commulative-service" scope="col">Loading...</td>
+                </tr>
+                <tr>
+                  <td scope="col">Cumulative KM Average</td>
+                  <td scope="col">:</td>
+                  <td id="commulative-km-average" scope="col">Loading...</td>
+                </tr>
+                <tr>
+                  <td scope="col">Cumulative Days Average</td>
+                  <td scope="col">:</td>
+                  <td id="commulative-days-average" scope="col">Loading...</td>
+                </tr>
+                <tr>
+                  <td scope="col">Truck</td>
+                  <td scope="col">:</td>
+                  <td id="truck-name" scope="col">Loading...</td>
+                </tr>
               </table>
             </div>
           </div>
-        </div>
-        <div class="row">
-          <div class="col-md-4">
-            <h5><i class="fas fa-truck me-2"></i>Asset</h5>
-            <p>
-              <strong>{{ truck_data.license_plate }}</strong><br />
-              Type : <strong>{{ truck_data.model }}</strong> <br />
-              Current Odometer:
-              <strong>{{ truck_data.current_odometer }} </strong>
-            </p>
-          </div>
-          <div class="col-md-4">
-            <h5><i class="fas fa-calendar-check me-2"></i>Next Service</h5>
-            <p>Estimated: <strong>14 Juni 2025 | 168,000,00</strong></p>
-            <p>
-              Based on:
-              <span class="badge bg-warning">Odometer</span>
-              <span class="badge bg-warning">Maintenance History</span>
-            </p>
+          <div class="col-md-6">
+            <div class="card bg-light-info shadow-none">
+              <div class="card-body">
+                <h5 class="card-title text-info">
+                  <i class="fas fa-chart-line me-2"></i>Predicted Next Failure
+                </h5>
+                <p class="card-text mb-1 fs-5">
+                  Predicted TTF (Days):
+                  <strong id="predicted-ttf-days">Loading...</strong>
+                </p>
+                <p class="card-text fs-5">
+                  Predicted TTF (KM):
+                  <strong id="predicted-ttf-km">Loading...</strong>
+                </p>
+                <hr />
+                <h5><i class="fas fa-calendar-check me-2"></i>Next Service</h5>
+                <p>
+                  Estimated:
+                  <strong id="next-service-date">Loading...</strong> |
+                  <strong id="next-service-km">Loading...</strong>
+                </p>
+                <p>
+                  Based on:
+                  <span class="badge bg-warning">Odometer</span>
+                  <span class="badge bg-warning">Maintenance History</span>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -214,21 +242,6 @@
       </div>
     </div>
   </div>
-  <!-- TTF Distribution -->
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="card-title">
-          <i class="fas fa-tachometer-alt mb-3"></i> | TTF Distribution
-        </h5>
-        <canvas id="distributionChart" height="150"></canvas>
-        <div class="alert alert-info mt-3" id="distribution-name">
-          <i class="fas fa-exclamation-triangle me-2"></i>
-          Loading distribution data...
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Maintenance History -->
   <div class="col-md-6">
@@ -249,7 +262,9 @@
                 <th>Date</th>
                 <th>Service</th>
                 <th>Odometer (KM)</th>
+                {% comment %}
                 <th>Cost</th>
+                {% endcomment %}
               </tr>
             </thead>
             <tbody>
@@ -257,13 +272,17 @@
                 <td>15 Mar 2024</td>
                 <td>Filter replaced</td>
                 <td>159,806,00</td>
+                {% comment %}
                 <td>Rp 560,000,-</td>
+                {% endcomment %}
               </tr>
               <tr class="table-warning">
                 <td>02 Feb 2024</td>
                 <td>Filter cleaned</td>
                 <td>150,806,00</td>
+                {% comment %}
                 <td>Rp 160,000,-</td>
+                {% endcomment %}
               </tr>
             </tbody>
           </table>
@@ -305,7 +324,6 @@
         mttfValue.innerHTML = data.mttf + " KM";
         mttfDist.innerHTML =
           "MTTF for the best-fit distribution " + data.distribution_name + ":";
-
         updateReliabilityGauge(data.reliability_score);
         updateDistributionChart(data.distribution_data); // Update reliability gauge with the fetched value
       },
@@ -579,6 +597,14 @@
         $("#last-ttf-days").html(data.last_ttf_days);
         $("#rolling_avg_km_3").html(data.rolling_avg_km_3);
         $("#rolling_avg_days_3").html(data.rolling_avg_days_3);
+        $("#count-commulative-service").html(data.count_commulative_service);
+        $("#commulative-days-average").html(data.commulative_days_average);
+        $("#truck-name").html(data.truck_name);
+        $("#commulative-km-average").html(data.commulative_km_average);
+        $("#predicted-ttf-days").html(data.predicted_ttf_days);
+        $("#predicted-ttf-km").html(data.predicted_ttf_km);
+        $("#next-service-date").html(data.next_service_date);
+        $("#next-service-km").html(data.next_service_km);
 
         // mttfValue.innerHTML = data.mttf + " KM";
         // Update reliability gauge with the fetched value
