@@ -53,9 +53,8 @@
             <p>
               <strong>{{ truck_data.license_plate }}</strong><br />
               Type : <strong>{{ truck_data.model }}</strong> <br />
-              {% comment %} Current Odometer:
-              <strong>{{ truck_data.current_odometer }} </strong>
-              {% endcomment %}
+              Current Odometer:
+              <strong>{{ last_service_odometer }} KM </strong>
             </p>
           </div>
           <div class="col-md-6">
@@ -209,13 +208,43 @@
                 <p>
                   Estimated:
                   <strong id="next-service-date">Loading...</strong> |
-                  <strong id="next-service-km">Loading...</strong>
+                  <strong id="next-service-km">Loading.. KM</strong>
                 </p>
                 <p>
                   Based on:
                   <span class="badge bg-warning">Odometer</span>
                   <span class="badge bg-warning">Maintenance History</span>
                 </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-2">
+  <div class="col-md-12">
+    <div class="card border-info">
+      <div class="card-header bg-info text-white">
+        <i class="fas fa-robot me-2"></i>Preventive Maintenance (Using Machine
+        Learning)
+      </div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">
+                  <i class="fas fa-tachometer-alt mb-3"></i> | Fuel Filter
+                  Pressure (kPa)
+                </h5>
+                <canvas id="pressureChart" height="150"></canvas>
+                <div class="alert alert-warning mt-3">
+                  <i class="fas fa-exclamation-triangle me-2"></i>
+                  Pressure increase detected (Possible clogging)
+                </div>
               </div>
             </div>
           </div>

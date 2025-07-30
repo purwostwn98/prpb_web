@@ -84,8 +84,11 @@
                     <th>Brand</th>
                     <th>Model</th>
                     <th>Year</th>
+                    {% comment %}
                     <th>Odometer (km)</th>
+                    {% endcomment %} {% comment %}
                     <th>Last Service</th>
+                    {% endcomment %}
                     <th>Status</th>
                     <th>Action</th>
                   </tr>
@@ -97,8 +100,11 @@
                     <td>{{ truck.brand }}</td>
                     <td>{{ truck.model }}</td>
                     <td>{{ truck.year }}</td>
+                    {% comment %}
                     <td>{{ truck.odometer }}</td>
+                    {% endcomment %} {% comment %}
                     <td>{{ truck.last_service_date|date:"Y-m-d" }}</td>
+                    {% endcomment %}
                     <td>
                       {% if truck.status == 'active' %}
                       <span class="badge bg-success">Active</span>

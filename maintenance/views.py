@@ -105,6 +105,7 @@ def dashboard_truck(request):
         'jumlah_maintenance': len(maintenance_records),
         'persentase_mttf': round(persentase_mttf,2),
         'reliability': round(reliability,2),
+        'last_service_odometer': last_maintenance.odometer_reading if last_maintenance else 0,
     }
     return render(request, 'maintenance/dashboard_truck.html', context)
 
