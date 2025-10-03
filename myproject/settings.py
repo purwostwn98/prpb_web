@@ -26,11 +26,28 @@ SECRET_KEY = 'django-insecure-gg_fxn*g2klz=myoj9x=jfngnakn%kgsliyj*u#@$%trhx1d9e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['sofipremas.ums.ac.id', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['sofipremas.ums.ac.id', 'localhost', '127.0.0.1', 'localhost.ums.ac.id']
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://sofpremas.ums.ac.id",
+    "https://www.sofpremas.ums.ac.id",
+    # optional: allow any ums.ac.id subdomain (Django 4.1+)
+    "https://*.ums.ac.id",
+    "http://localhost.ums.ac.id",
+]
 
 # Application definition
 
 INSTALLED_APPS = [
+    "unfold",  # before django.contrib.admin
+    "unfold.contrib.filters",  # optional, if special filters are needed
+    "unfold.contrib.forms",  # optional, if special form elements are needed
+    "unfold.contrib.inlines",  # optional, if special inlines are needed
+    "unfold.contrib.import_export",  # optional, if django-import-export package is used
+    "unfold.contrib.guardian",  # optional, if django-guardian package is used
+    "unfold.contrib.simple_history",  # optional, if django-simple-history package is used
+    "unfold.contrib.location_field",  # optional, if django-location-field package is used
+    "unfold.contrib.constance",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

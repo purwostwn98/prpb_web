@@ -238,7 +238,7 @@
               <div class="card-body">
                 <h5 class="card-title">
                   <i class="fas fa-tachometer-alt mb-3"></i> | Fuel Filter
-                  Pressure (kPa)
+                  Pressure (Psi)
                 </h5>
                 <canvas id="pressureChart" height="150"></canvas>
                 <div class="alert alert-warning mt-3">
@@ -504,11 +504,11 @@
           },
         },
         y: {
-          min: 100,
-          max: 250,
+          min: -10,
+          max: 0,
           title: {
             display: true,
-            text: "Pressure (kPa)",
+            text: "Pressure (psi)",
           },
         },
       },
@@ -518,7 +518,7 @@
   // Function to simulate real-time data
   function updatePressureChart() {
     const currentTime = new Date().toLocaleTimeString(); // Get the current time
-    const newPressure = Math.floor(Math.random() * (250 - 100 + 1)) + 100; // Random pressure value between 100 and 250
+    const newPressure = Math.random() * (-2.568 + 2.05) - 2.05; // Random pressure value between -2.05 and -2.568
 
     // Add new data to the chart
     pressureData.labels.push(currentTime);
