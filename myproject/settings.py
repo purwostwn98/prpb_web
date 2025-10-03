@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+from django.templatetags.static import static
+from decouple import config
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -57,7 +59,8 @@ INSTALLED_APPS = [
     'master',
     'maintenance',
     'landing',
-    'core'
+    'core', 
+    'delivery',
 ]
 
 MIDDLEWARE = [
@@ -100,7 +103,6 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
-
 
 DATABASES = {
     'default': {
@@ -160,3 +162,58 @@ STATIC_ROOT = BASE_DIR / "staticfiles"     # For collectstatic in production
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+UNFOLD = {
+    "SITE_TITLE": "Truck Maintenance Management System",
+    "SITE_HEADER": "Truck Maintenance Management System",
+    "SITE_URL": "/",
+    "SIDEBAR_TOGGLE_ENABLED": False,  # Disable sidebar toggle buttons
+    "SITE_ICON": {
+        "dark": lambda request: static("assets/images/logos/light-logo.png"),
+        "light": lambda request: static("assets/images/logos/dark-logo.png"),
+    },
+    "SITE_LOGO": {
+        "dark": lambda request: static("assets/images/logos/light-logo.png"),
+        "light": lambda request: static("assets/images/logos/dark-logo.png"),
+    },
+    "SITE_SYMBOL": "🚚",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "SHOW_TIMEZONE_WARNING": False,  # Disable timezone warning
+    "ENVIRONMENT": "myproject.utils.environment_callback",
+    # "DASHBOARD_CALLBACK": "myproject.utils.dashboard_callback",  # Temporarily disabled
+    "LOGIN": {
+        "image": "path/to/login-bg.jpg",
+        "redirect_after": "/admin/",
+    },
+    "STYLES": [
+        lambda request: static("css/custom.css"),
+    ],
+    "SCRIPTS": [
+        lambda request: static("js/custom.js"),
+    ],
+    "COLORS": {
+        "primary": {
+            "50": "239 246 255",
+            "100": "219 234 254", 
+            "200": "191 219 254",
+            "300": "147 197 253",
+            "400": "96 165 250",
+            "500": "59 130 246",
+            "600": "37 99 235",
+            "700": "29 78 216",
+            "800": "30 64 175",
+            "900": "30 58 138",
+            "950": "23 37 84"
+        },
+    },
+    "EXTENSIONS": {
+        "modeltranslation": {
+            "flags": {
+                "en": "🇺🇸",
+                "fr": "🇫🇷",
+                "nl": "🇳🇱",
+            },
+        },
+    },
+}

@@ -13,22 +13,30 @@ class RecordPartsInline(TabularInline):
     readonly_fields = ['record']
 @admin.register(Record)
 class RecordAdmin(ModelAdmin):
-    list_display = ['order_reference', 'maintenance_type', 'truck_license_plate']
+    list_display = [
+        'order_reference', 'service_date', 
+        'maintenance_type', 'truck_license_plate', 
+        'odometer_reading', 'status'
+    ]
     @display(description='Truck License Plate')
     def truck_license_plate(self, obj):
-        return obj.truck.license_plate if obj.truck else "-"
+        return f"{obj.truck.license_plate} ({obj.truck.brand})" if obj.truck else "-"
     search_fields = ['order_reference', 'maintenance_type', 'truck__license_plate']
     list_filter = ['maintenance_type']
     ordering = ['order_reference']
     def get_readonly_fields(self, request, obj=None):
         if obj:  # editing existing record
-            return ['order_reference', 'truck']
+            return ['order_reference', 'truck', 'service_date', 'odometer_reading']
         else:  # adding new record
             return ['order_reference']
     autocomplete_fields = ['truck']
     fieldsets = [
         ('Informasi Record', {
-            'fields': ['order_reference', 'maintenance_type', 'status', 'truck'],
+            'fields': (
+                ('order_reference', 'truck'),
+                ('odometer_reading', 'maintenance_type'),
+                ('service_date', 'status'),
+            ),
             'description': 'Informasi dasar mengenai record maintenance.'
         }),
     ]
