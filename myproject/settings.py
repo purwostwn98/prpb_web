@@ -38,6 +38,23 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost.ums.ac.id",
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -61,6 +78,7 @@ INSTALLED_APPS = [
     'landing',
     'core', 
     'delivery',
+    'api',
 ]
 
 MIDDLEWARE = [
@@ -107,15 +125,15 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB'),
-        'USER': os.getenv('POSTGRES_USER'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-        'HOST': os.getenv('POSTGRES_HOST'),  # should be host.docker.internal
-        'PORT': os.getenv('POSTGRES_PORT'),
+        'NAME': config('POSTGRES_DB'),
+        'USER': config('POSTGRES_USER'),
+        'PASSWORD': config('POSTGRES_PASSWORD'),
+        'HOST': config('POSTGRES_HOST'),
+        'PORT': config('POSTGRES_PORT'),
     }
 }
 
-SUPERUSER_NAME = os.getenv('DJANGO_SUPERUSER_USERNAME')
+SUPERUSER_NAME = config('DJANGO_SUPERUSER_USERNAME')
 
 
 
