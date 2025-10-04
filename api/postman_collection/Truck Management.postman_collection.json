@@ -1,0 +1,163 @@
+{
+	"info": {
+		"_postman_id": "00dbfe92-c4b3-4c3c-9c4f-be0a618676e2",
+		"name": "Truck Management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "12744419"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"login",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc1OTYyNTI3MSwiaWF0IjoxNzU5NTM4ODcxLCJqdGkiOiI2OGRhNDAzMDQ4M2Y0YjY2YTk3MGVlYmFhNWE1ZTFkNyIsInVzZXJfaWQiOiIxIn0.Ldxz-o1GmsEeWKwAEevsT1FQJ0PrafFEp-8Rnfj3PvY\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/refresh/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"refresh",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc1OTYyNTI3MSwiaWF0IjoxNzU5NTM4ODcxLCJqdGkiOiI2OGRhNDAzMDQ4M2Y0YjY2YTk3MGVlYmFhNWE1ZTFkNyIsInVzZXJfaWQiOiIxIn0.Ldxz-o1GmsEeWKwAEevsT1FQJ0PrafFEp-8Rnfj3PvY\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/logout/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"logout",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Merek",
+			"item": [
+				{
+					"name": "List",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU5NTQwNjcxLCJpYXQiOjE3NTk1Mzg4NzEsImp0aSI6ImJkMDNmMmU0NmE3NDQ4OGZhNjg3NzI3NDFhMzg1NDNjIiwidXNlcl9pZCI6IjEifQ.3od0St4E7ycU0x2jhe8-FjWne3oGtJxqf6MPonjbEyQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/merek/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"merek",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": ""
+		}
+	]
+}
