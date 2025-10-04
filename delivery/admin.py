@@ -49,4 +49,5 @@ class ShippingToAdmin(ModelAdmin):
 
     inlines = [ShippingItemInline]
     class Media:
-        js = ('static/admin/shippingto_autofill.js',) 
+        js = ('admin/shippingto_autofill.js',)
+    
