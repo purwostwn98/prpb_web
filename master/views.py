@@ -52,7 +52,6 @@ def create_Merek(request):
     context['form_merek'] = form_merek
     return render(request, 'master/create_merek.html', context)
 
-
 def create_Truck(request):
     context  ={}
     form_truck = TruckForm(request.POST or None, request.FILES or None)
@@ -252,9 +251,6 @@ def delete_Part(request, pk):
     if request.method == 'POST':
         part.delete()
     return redirect('part_list')
-
-
-
 
 
 # Full Form
