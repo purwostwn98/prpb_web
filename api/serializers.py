@@ -59,9 +59,16 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['username', 'email']
 
 class ShippingToSerializer(serializers.ModelSerializer):
+
+    spbu_name = serializers.SerializerMethodField()
+    def get_spbu_name(self, obj):
+        if obj.spbu:
+            spbu_name = obj.spbu.name + " - " + obj.spbu.address
+        return spbu_name if obj.spbu else None
+
     class Meta:
         model = ShippingTo
-        fields = '__all__'
+        fields = 'id', 'estimated_distance_km', 'ol_number', 'order_date', 'delivery_date', 'notes', 'spbu_id', 'spbu_name'
 
 class ShippingSerializer(serializers.ModelSerializer):
     

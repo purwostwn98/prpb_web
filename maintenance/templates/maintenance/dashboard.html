@@ -23,7 +23,7 @@
   </div>
 </div>
 <div class="row">
-  <div class="col-md-4">
+  <div class="col-md-6">
     <div class="card mx-2">
       <div class="card-body">
         <h5 class="card-title">Total Trucks</h5>
@@ -31,6 +31,7 @@
       </div>
     </div>
   </div>
+  {% comment %}
   <div class="col-md-4">
     <div class="card">
       <div class="card-body">
@@ -39,7 +40,8 @@
       </div>
     </div>
   </div>
-  <div class="col-md-4">
+  {% endcomment %}
+  <div class="col-md-6">
     <div class="card">
       <div class="card-body">
         <h5 class="card-title">Maintenance Due</h5>
@@ -61,6 +63,7 @@
   <div class="col-md-12">
     <div class="card mx-2">
       <div class="card-body">
+        {% comment %}
         <h5 class="card-title mb-3">⚠️ Maintenance Alerts</h5>
         <div class="alert alert-warning">
           <strong>Truck AG8957UV</strong> - Fuel pressure dropped 15% (Clogged
@@ -70,6 +73,7 @@
           <strong>Truck AG9822UV</strong> - Odometer 85,000km (Fuel filter
           service overdue)
         </div>
+        {% endcomment %}
         <div class="card mt-4">
           <div class="card-body">
             <h5 class="card-title mb-3">Truck List</h5>
@@ -84,9 +88,8 @@
                     <th>Brand</th>
                     <th>Model</th>
                     <th>Year</th>
-                    {% comment %}
                     <th>Odometer (km)</th>
-                    {% endcomment %} {% comment %}
+                    {% comment %}
                     <th>Last Service</th>
                     {% endcomment %}
                     <th>Status</th>
@@ -100,9 +103,8 @@
                     <td>{{ truck.brand }}</td>
                     <td>{{ truck.model }}</td>
                     <td>{{ truck.year }}</td>
+                    <td>{{ truck.current_odometer }}</td>
                     {% comment %}
-                    <td>{{ truck.odometer }}</td>
-                    {% endcomment %} {% comment %}
                     <td>{{ truck.last_service_date|date:"Y-m-d" }}</td>
                     {% endcomment %}
                     <td>
