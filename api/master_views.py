@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions
-from delivery.models import Shipping
+from delivery.models import Shipping, ShippingTo
 from master.models import Driver, Merek, Truck
-from .serializers import MerekSerializer, ShippingSerializer, TruckDataSerializer, TruckSerializer, MttfSerializer, UserDriverSerializer, UserSerializer
+from .serializers import MerekSerializer, ShippingSerializer, ShippingToSerializer, TruckDataSerializer, TruckSerializer, MttfSerializer, UserDriverSerializer, UserSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import get_user_model
 
@@ -85,5 +85,17 @@ class MttfViewSet(viewsets.ModelViewSet):
         if truck_id is not None:
             return Truck.objects.filter(id=truck_id)
         return Truck.objects.all()
+    
+class ShippingToViewSet(viewsets.ModelViewSet):
+    serializer_class = ShippingToSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        shipping_id = self.request.query_params.get('shipping_id')
+        queryset = ShippingTo.objects.all()
+        if shipping_id is not None:
+            queryset = queryset.filter(shipping_id=shipping_id)
+        return queryset
 
     

@@ -3,7 +3,7 @@ from rest_framework import serializers
 from master.models import Merek, Truck
 from master.models import Driver
 from core.utils import *
-from delivery.models import Shipping, ShippingTo
+from delivery.models import Shipping, ShippingItem, ShippingTo
 from maintenance.models import Record as MaintenanceRecord  # Add this import at the module level
 from django.contrib.auth import get_user_model
 
@@ -63,12 +63,26 @@ class ShippingToSerializer(serializers.ModelSerializer):
     spbu_name = serializers.SerializerMethodField()
     def get_spbu_name(self, obj):
         if obj.spbu:
-            spbu_name = obj.spbu.name + " - " + obj.spbu.address
+            spbu_name = f"{obj.spbu.name} - {obj.spbu.address}"
         return spbu_name if obj.spbu else None
+    
+    items = serializers.SerializerMethodField()
+    def get_items(self, obj):
+        shippingto_id = obj.id
+        shipping_items = ShippingItem.objects.filter(shippingto_id=shippingto_id)
+        return ShippingItemSerializer(shipping_items, many=True).data
 
     class Meta:
         model = ShippingTo
-        fields = 'id', 'estimated_distance_km', 'ol_number', 'order_date', 'delivery_date', 'notes', 'spbu_id', 'spbu_name'
+        fields = 'id', 'estimated_distance_km', 'ol_number', 'order_date', 'delivery_date', 'notes', 'spbu_id', 'spbu_name', 'items'
+
+class ShippingItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.SerializerMethodField()
+    def get_product_name(self, obj):
+        return obj.product.name if obj.product else None
+    class Meta:
+        model = ShippingItem
+        fields = ['product_name', 'quantity', 'unit_price']
 
 class ShippingSerializer(serializers.ModelSerializer):
     
@@ -80,7 +94,7 @@ class ShippingSerializer(serializers.ModelSerializer):
     license_plate = serializers.SerializerMethodField()
     class Meta:
         model = Shipping
-        fields = ['id', 'driver', 'delivery_date', 'truck', 'license_plate', 'shippingto']  # Added license_plate
+        fields = ['id', 'driver', 'delivery_date', 'truck', 'license_plate', 'status', 'shippingto']  # Added license_plate
 
     def get_license_plate(self, obj):
         return obj.truck.license_plate if obj.truck else None
