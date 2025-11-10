@@ -1,10 +1,11 @@
-import datetime
+from datetime import date, timedelta, datetime
+from django.http import JsonResponse
 from rest_framework import serializers
 from master.models import Merek, Truck
 from master.models import Driver
 from core.utils import *
 from delivery.models import Shipping, ShippingItem, ShippingTo
-from maintenance.models import Record as MaintenanceRecord  # Add this import at the module level
+from maintenance.models import Record as MaintenanceRecord, TruckDeviceModel  # Add this import at the module level
 from django.contrib.auth import get_user_model
 
 import numpy as np # type: ignore
@@ -115,7 +116,7 @@ class TruckDataSerializer(serializers.ModelSerializer):
         if last_maintenance:
         # get truck age at service
             if last_maintenance and truck_data and truck_data.year:
-                truck_manufacture_date = datetime.date(truck_data.year, 1, 1) # Assumes the truck was made on Jan 1st of its year
+                truck_manufacture_date = date(int(truck_data.year), 1, 1)  # Convert year to date object
                 # timedelta does not have a .years attribute. Calculate it from days.
                 truck_age_at_service = (last_maintenance.service_date - truck_manufacture_date).days / 365.25
             else:
@@ -182,7 +183,7 @@ class TruckDataSerializer(serializers.ModelSerializer):
             # get next service date
             last_service_date = last_maintenance.service_date if last_maintenance else None
             if last_service_date:
-                next_service_date = last_service_date + datetime.timedelta(days=predicted_days)
+                next_service_date = last_service_date + timedelta(days=int(predicted_days))
             else:
                 next_service_date = None
 
@@ -268,3 +269,94 @@ class MttfSerializer(serializers.ModelSerializer):
     class Meta:
         model = Truck
         fields = ['id', 'license_plate', 'mttf']
+
+class PressureChartDataSerializer(serializers.ModelSerializer):
+
+    pressure_chart_data = serializers.SerializerMethodField()
+
+    def get_pressure_chart_data(self, obj):
+        # Example static data for pressure chart
+        truck_id = obj.id
+        truckDevice = TruckDeviceModel.objects.filter(truck__id=truck_id).first()
+        if not truckDevice:
+            transformed_data = [{
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'day': datetime.now().strftime('%a'),
+                'pressure': 0,
+                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            },
+            {
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'day': datetime.now().strftime('%a'),
+                'pressure': 0,
+                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            },
+            {
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'day': datetime.now().strftime('%a'),
+                'pressure': 0,
+                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            },
+            {
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'day': datetime.now().strftime('%a'),
+                'pressure': 0,
+                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            },
+            {
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'day': datetime.now().strftime('%a'),
+                'pressure': 0,
+                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            },
+            {
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'day': datetime.now().strftime('%a'),
+                'pressure': 0,
+                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            },
+            {
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'day': datetime.now().strftime('%a'),
+                'pressure': 0,
+                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            }]
+            return transformed_data
+        
+        device_id = truckDevice.device_model
+        response = get_fuel_filter_pressure_from_api(device_id)
+        results = response.get('results', [])
+        # Transform each result
+        transformed_data = []
+        
+        for item in results:
+            # Extract date from timestamp
+            date_str = item['timestamp'].split('T')[0]
+            
+            # Get day name
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+            day_name = date_obj.strftime('%a')  # Short day name (Mon, Tue, etc.)
+            
+            # Get pressure value (absolute value)
+            pressure = round(abs(float(item['pressure_value'])))
+            
+            transformed_data.append({
+                'date': date_str,
+                'day': day_name,
+                'pressure': pressure,
+                'timestamp': item['timestamp']
+            })
+        
+        return transformed_data
+    
+    period = serializers.SerializerMethodField()
+    def get_period(self, obj):
+        return "7t"
+    
+    data_collected_at = serializers.SerializerMethodField()
+    def get_data_collected_at(self, obj):
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    class Meta:
+        model = Truck
+        fields = ['id', 'license_plate', 'period', 'data_collected_at', 'pressure_chart_data']

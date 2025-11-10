@@ -144,3 +144,23 @@ def get_prediction_from_api(payload_data):
         print(f"Failed to decode JSON response from API. Response text: {response.text}")
         return None
     
+def get_fuel_filter_pressure_from_api(device_id):
+    """
+    Sends device_id to the fuel filter pressure API and returns the result.
+    
+    Args:
+        device_id (str): The device ID for which to retrieve fuel filter pressure data.
+
+    Returns:
+        dict: The JSON response from the API, or None if an error occurs.
+    """
+    url = "https://iot.ums-biroti.id/api/S01/?device_id=" + device_id
+
+    payload = {}
+    headers = {
+    'Authorization': 'Token 9bc1840fce83fc3ae12a311870245eec86f2e4b7'
+    }
+
+    response = requests.request("GET", url, headers=headers, data=payload)
+
+    return response.json()

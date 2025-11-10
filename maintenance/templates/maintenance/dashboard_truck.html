@@ -225,20 +225,19 @@
 </div>
 
 <div class="row mt-2">
-  <div class="col-md-12">
+  <div class="col-12">
     <div class="card border-info">
       <div class="card-header bg-info text-white">
-        <i class="fas fa-robot me-2"></i>Preventive Maintenance (Using Machine
-        Learning)
+        <i class="fas fa-robot me-2"></i>Predictive Maintenance (Using IoT)
       </div>
       <div class="card-body">
         <div class="row mb-3">
-          <div class="col-md-6">
+          <div class="col-md-12">
             <div class="card">
               <div class="card-body">
                 <h5 class="card-title">
                   <i class="fas fa-tachometer-alt mb-3"></i> | Fuel Filter
-                  Pressure (Psi)
+                  Pressure (mpsi)
                 </h5>
                 <canvas id="pressureChart" height="150"></canvas>
                 <div class="alert alert-warning mt-3">
@@ -253,24 +252,6 @@
     </div>
   </div>
 </div>
-
-<div class="row mt-2">
-  <!-- Fuel Filter Pressure Trend -->
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="card-title">
-          <i class="fas fa-tachometer-alt mb-3"></i> | Fuel Filter Pressure
-          (kPa)
-        </h5>
-        <canvas id="pressureChart" height="150"></canvas>
-        <div class="alert alert-warning mt-3">
-          <i class="fas fa-exclamation-triangle me-2"></i>
-          Pressure increase detected (Possible clogging)
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Maintenance History -->
   <div class="col-md-6">
@@ -504,8 +485,8 @@
           },
         },
         y: {
-          min: -10,
-          max: 0,
+          min: 0,
+          max: "auto",
           title: {
             display: true,
             text: "Pressure (psi)",
@@ -516,26 +497,69 @@
   });
 
   // Function to simulate real-time data
+  let previousPressure = null;
+  let unchangedCount = 0;
+  let machineDeadAlertShown = false;
   function updatePressureChart() {
-    const currentTime = new Date().toLocaleTimeString(); // Get the current time
-    const newPressure = Math.random() * (-2.568 + 2.05) - 2.05; // Random pressure value between -2.05 and -2.568
+    const currentTime = new Date().toLocaleTimeString();
+    var idTruck = document.getElementById("id-truck").value;
 
-    // Add new data to the chart
-    pressureData.labels.push(currentTime);
-    pressureData.datasets[0].data.push(newPressure);
+    $.ajax({
+      url: "/maintenance/dinamis/get-fuel-filter-pressure/" + idTruck + "/",
+      type: "GET",
+      dataType: "json",
+      success: function (data) {
+        console.log("Input Data:", data.pressure_values);
+        if (unchangedCount < 5) {
+          var newPressure = data.pressure_values;
+        } else {
+          var newPressure = 0;
+        }
 
-    // Limit the number of data points to 10 for better visualization
-    if (pressureData.labels.length > 10) {
-      pressureData.labels.shift();
-      pressureData.datasets[0].data.shift();
-    }
+        // Check if pressure value hasn't changed
+        if (previousPressure !== null && newPressure === previousPressure) {
+          unchangedCount++;
+          console.log(`Pressure unchanged count: ${unchangedCount}/5`);
 
-    // Update the chart
-    pressureChart.update();
+          // If unchanged for 5 consecutive readings
+          if (unchangedCount >= 5) {
+            newPressure = 0;
+
+            // Show alert only once
+            if (!machineDeadAlertShown) {
+              alert(
+                "WARNING: Mesin mati! Pressure tidak berubah dalam 5 kali pembacaan. Data yang muncul di grafik adalah data terakhir saat mesin dimatikan."
+              );
+              machineDeadAlertShown = true;
+            }
+          }
+        } else {
+          // Pressure changed, reset counter
+          // unchangedCount = 0;
+          machineDeadAlertShown = false;
+        }
+
+        // Update previous pressure for next comparison
+        previousPressure = newPressure;
+
+        // Update chart
+        pressureData.labels.push(currentTime);
+        pressureData.datasets[0].data.push(newPressure);
+
+        if (pressureData.labels.length > 10) {
+          pressureData.labels.shift();
+          pressureData.datasets[0].data.shift();
+        }
+
+        pressureChart.update();
+      },
+      error: function (xhr, status, error) {
+        console.error("Error fetching pressure data:", error);
+      },
+    });
   }
 
-  // Update the chart every 2 seconds
-  setInterval(updatePressureChart, 2000);
+  setInterval(updatePressureChart, 10000);
 
   // jika menggunakan api
   // async function updatePressureChart() {

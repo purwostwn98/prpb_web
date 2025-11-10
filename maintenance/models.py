@@ -65,7 +65,6 @@ class Log(models.Model):
     def __str__(self):
         return f"{self.record} - {self.log_type} - {self.log_description} - {self.updated_by}"
     
-
 class RecordParts(models.Model):
     record = models.ForeignKey(Record, on_delete=models.CASCADE)  # Links to the Record model
     part = models.ForeignKey('master.Part', on_delete=models.CASCADE)  # Links to the Part model
@@ -75,4 +74,10 @@ class RecordParts(models.Model):
     def __str__(self):
         return f"{self.record.order_reference} - {self.part.name} - Quantity: {self.quantity}"
     
-    ##      BELUM DI MIGRASI
+class TruckDeviceModel(models.Model):
+    truck = models.ForeignKey('master.Truck', on_delete=models.CASCADE)
+    device_model = models.CharField(max_length=255)
+    installed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.truck} - {self.device_model}"

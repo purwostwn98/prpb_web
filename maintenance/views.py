@@ -1,13 +1,16 @@
 
-import datetime
+
 from itertools import count
 from django.shortcuts import render # type: ignore
 from django.http import JsonResponse # type: ignore
 
 from master.models import Truck
 from maintenance.models import Record as MaintenanceRecord
+from maintenance.models import TruckDeviceModel
 from django.db.models import Count # type: ignore
 
+from django.utils import timezone
+from datetime import datetime, timedelta, date # type: ignore
 import numpy as np # type: ignore
 from reliability.Fitters import Fit_Everything # type: ignore
 
@@ -168,7 +171,7 @@ def getInputDataML(request, id):
     last_maintenance = get_last_maintenance_record(truck_id)
     # get truck age at service
     if last_maintenance and truck_data and truck_data.year:
-        truck_manufacture_date = datetime.date(truck_data.year, 1, 1) # Assumes the truck was made on Jan 1st of its year
+        truck_manufacture_date = date(truck_data.year, 1, 1) # Assume the truck was made on Jan 1st of its year
         # timedelta does not have a .years attribute. Calculate it from days.
         truck_age_at_service = (last_maintenance.service_date - truck_manufacture_date).days / 365.25
     else:
@@ -237,7 +240,7 @@ def getInputDataML(request, id):
     # print(last_service_date)
     # print("ongkeh")
     if last_service_date:
-        next_service_date = last_service_date + datetime.timedelta(days=predicted_days)
+        next_service_date = last_service_date + timedelta(days=predicted_days if predicted_days is not None else 0)
     else:
         next_service_date = None
 
@@ -272,3 +275,32 @@ def getInputDataML(request, id):
 
     }
     return JsonResponse(context)
+
+
+def getFuelFilterPressure(request, id):
+    """
+    View function to get the fuel filter pressure for a specific truck.
+    """
+    truck_id = id
+    # get truck device_id
+    truckDevice = TruckDeviceModel.objects.filter(truck__id=truck_id).first()
+    if not truckDevice:
+        return JsonResponse({'error': 'Truck device not found'}, status=404)
+    device_id = truckDevice.device_model
+    response = get_fuel_filter_pressure_from_api(device_id)
+    
+    # convert the response to list of integers
+    first_pressure_value = float(response['results'][0]['pressure_value'])
+    first_pressure_value = abs(first_pressure_value)
+    timestamp_values = response['results'][0]['timestamp']
+    
+    # convert timestamp to readable format
+    dt = datetime.fromisoformat(timestamp_values.replace('Z', '+00:00'))
+    local_dt = timezone.localtime(dt)
+    readable = local_dt.strftime('%B %d, %Y at %I:%M:%S %p')
+
+    response = {
+        'datetime': readable,
+        'pressure_values': first_pressure_value,
+    }
+    return JsonResponse(response)

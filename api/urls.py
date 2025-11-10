@@ -16,6 +16,7 @@ router.register(r'user', UserViewSet, basename='user')
 router.register(r'truck-data-ml', TruckDataViewSet, basename='truck-data-ml')
 router.register(r'truck-mttf', MttfViewSet, basename='truck-mttf')
 router.register(r'shipping-to', ShippingToViewSet, basename='shipping-to')
+router.register(r'pressure-cart-data', PressureChartDataViewSet, basename='pressure-cart-data')
 
 urlpatterns = [
     path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

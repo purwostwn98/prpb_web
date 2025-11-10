@@ -7,4 +7,5 @@ urlpatterns = [
     path('dinamis/statistic-brand-chart/', views.statisticBrandChart, name='statistic-brand-chart'),
     path('dinamis/get_mttf/<int:id>/', views.getMttfValue, name='get_mttf'),
     path('dinamis/get-input-data/<int:id>/', views.getInputDataML, name='get_input_data'),
+    path('dinamis/get-fuel-filter-pressure/<int:id>/', views.getFuelFilterPressure, name='get_fuel_filter_pressure'),
 ]
