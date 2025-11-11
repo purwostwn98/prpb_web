@@ -24,7 +24,7 @@ class TruckSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Truck
-        fields = ['id', 'license_plate', 'brand', 'brand_nama']
+        fields = ['id', 'license_plate', 'brand', 'brand_nama', 'model', 'year']
 
 class UserDriverSerializer(serializers.ModelSerializer):
     data_driver = serializers.SerializerMethodField()
@@ -93,12 +93,18 @@ class ShippingSerializer(serializers.ModelSerializer):
         return ShippingToSerializer(shipping_to_objects, many=True).data
 
     license_plate = serializers.SerializerMethodField()
-    class Meta:
-        model = Shipping
-        fields = ['id', 'driver', 'delivery_date', 'truck', 'license_plate', 'status', 'shippingto']  # Added license_plate
-
     def get_license_plate(self, obj):
         return obj.truck.license_plate if obj.truck else None
+    
+    model = serializers.SerializerMethodField()
+    def get_model(self, obj):
+        return obj.truck.model if obj.truck else None
+    
+    class Meta:
+        model = Shipping
+        fields = ['id', 'driver', 'delivery_date', 'truck', 'model', 'license_plate', 'status', 'shippingto']  # Added license_plate
+
+    
     
 class TruckDataSerializer(serializers.ModelSerializer):
     brand_nama = serializers.SerializerMethodField()
