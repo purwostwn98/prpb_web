@@ -276,7 +276,6 @@ def getInputDataML(request, id):
     }
     return JsonResponse(context)
 
-
 def getFuelFilterPressure(request, id):
     """
     View function to get the fuel filter pressure for a specific truck.
@@ -304,3 +303,19 @@ def getFuelFilterPressure(request, id):
         'pressure_values': first_pressure_value,
     }
     return JsonResponse(response)
+
+def getMaintenanceHistory(request, id):
+    """
+    View function to get the maintenance history for a specific truck.
+    """
+    truck_id = id
+    maintenance_records = MaintenanceRecord.objects.filter(truck__id=truck_id).order_by('-service_date')[:5]
+    history = []
+    for record in maintenance_records:
+        history.append({
+            'date': record.service_date.strftime('%Y-%m-%d'),
+            'odometer': record.odometer_reading,
+            'service': "Fuel Filter Replacement",
+            'row_class' : 'table-success',
+        })
+    return JsonResponse({'history': history})

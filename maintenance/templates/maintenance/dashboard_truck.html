@@ -254,19 +254,19 @@
 </div>
 
   <!-- Maintenance History -->
-  <div class="col-md-6">
+  <div class="col-md-12">
     <div class="card">
       <div class="card-body">
         <h5
           class="card-title d-flex align-items-center justify-content-between flex-wrap gap-6"
         >
           <i class="fas fa-history me-2"></i> Maintenance History
-          <button id="add-list" class="btn btn-primary btn-sm">
+          {% comment %} <button id="add-list" class="btn btn-primary btn-sm">
             View All History
-          </button>
+          </button> {% endcomment %}
         </h5>
         <div class="mt-3">
-          <table class="table table-sm">
+          <table class="table table-sm table-history">
             <thead>
               <tr>
                 <th>Date</th>
@@ -316,6 +316,7 @@
   $(document).ready(function () {
     showMttfValue();
     show_and_get_input_data();
+    getMaintenanceHistory();
   });
 </script>
 
@@ -667,6 +668,34 @@
         mttfValue.innerHTML = "MTTF: Error fetching data";
       },
     });
+  }
+</script>
+
+{% comment %} get maintenance history {% endcomment %}
+<script>
+  function getMaintenanceHistory() {
+    var idTruck = document.getElementById("id-truck").value;
+    $.ajax({
+      url: "/maintenance/dinamis/get-maintenance-history/" + idTruck + "/",
+      type: "GET",
+      dataType: "json",
+      success: function (data) {
+        console.log("Maintenance History Data:", data); // Log the received data for debugging
+        var tableBody = $(".table-history tbody");
+        tableBody.empty(); // Clear existing rows
+        data.history.forEach(function (record) {
+          var row = `<tr class="${
+            record.row_class
+          }"><td>${record.date}</td>
+          <td>${record.service}</td><td>${record.odometer}</td></tr>`;
+          tableBody.append(row);
+        });
+      },
+      error: function (xhr, status, error) {
+        console.error("Error fetching Maintenance History data:", error);
+      },
+    });
+    
   }
 </script>
 {% endblock %}
