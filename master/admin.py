@@ -58,7 +58,7 @@ class DriverAdmin(ModelAdmin):
 class SpbuAdmin(ModelAdmin):
     search_fields = ('code', 'name', 'address', 'owner')
     list_display = ('code', 'name', 'address', 'owner')
-    ordering = ('-name',)
+    ordering = ('owner',)
     list_filter = ('city', 'owner')
     list_per_page = 30
     fieldsets = [

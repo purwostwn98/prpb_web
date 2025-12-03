@@ -109,7 +109,7 @@ class Spbu(models.Model):
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.code} - {self.name} - {self.address}"
+        return f"{self.code} - {self.distance} - {self.name} - {self.address}"
     
 class Product(models.Model):
     name = models.CharField(max_length=255)

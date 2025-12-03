@@ -490,7 +490,7 @@
           max: "auto",
           title: {
             display: true,
-            text: "Pressure (psi)",
+            text: "Pressure (mpsi)",
           },
         },
       },
@@ -502,9 +502,7 @@
   let unchangedCount = 0;
   let machineDeadAlertShown = false;
   function updatePressureChart() {
-    const currentTime = new Date().toLocaleTimeString();
     var idTruck = document.getElementById("id-truck").value;
-
     $.ajax({
       url: "/maintenance/dinamis/get-fuel-filter-pressure/" + idTruck + "/",
       type: "GET",
@@ -513,8 +511,10 @@
         console.log("Input Data:", data.pressure_values);
         if (unchangedCount < 5) {
           var newPressure = data.pressure_values;
+          var currentTime = data.datetime;
         } else {
           var newPressure = 0;
+          var currentTime = new Date().toLocaleTimeString();
         }
 
         // Check if pressure value hasn't changed
@@ -529,7 +529,7 @@
             // Show alert only once
             if (!machineDeadAlertShown) {
               alert(
-                "WARNING: Mesin mati! Pressure tidak berubah dalam 5 kali pembacaan. Data yang muncul di grafik adalah data terakhir saat mesin dimatikan."
+                "Informasi: Mesin dalam kondisi mati. Pressure tidak berubah dalam 5 kali pembacaan. Data yang muncul di grafik adalah data terakhir saat mesin dimatikan."
               );
               machineDeadAlertShown = true;
             }
