@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404 # type: ignore
 
 # Create your views here.
-from .models import Merek, Truck, Company, Vendor, Part
-from .forms import MerekForm, TruckForm, CompanyForm, VendorForm, PartForm
+from .models import Merek, Truck, Company, Vendor, Part, Driver, Spbu, Product
+from .forms import MerekForm, TruckForm, CompanyForm, VendorForm, PartForm, DriverForm, SpbuForm, ProductForm
 
 def coba_template(request):
     return render(request, 'base.html')
@@ -36,6 +36,21 @@ def vendor_list(request):
 def part_list(request):
     parts = Part.objects.all().order_by('-updated_at')
     return render(request, 'master/part_list.html', {'parts': parts})
+
+
+def driver_list(request):
+    drivers = Driver.objects.all().order_by('-updated_at')
+    return render(request, 'master/driver_list.html', {'drivers': drivers})
+
+
+def spbu_list(request):
+    spbus = Spbu.objects.all().order_by('-updated_at')
+    return render(request, 'master/spbu_list.html', {'spbus': spbus})
+
+
+def product_list(request):
+    products = Product.objects.all().order_by('-updated_at')
+    return render(request, 'master/product_list.html', {'products': products})
 
 
 
@@ -92,9 +107,42 @@ def create_Part(request):
         if form_part.is_valid():
             form_part.save()
             return redirect('part_list')
-    context['form_part'] = form_part 
+    context['form_part'] = form_part
     return render(request, 'master/create_part.html', context)
-    
+
+
+def create_Driver(request):
+    context = {}
+    form_driver = DriverForm(request.POST or None)
+    if request.method == 'POST':
+        if form_driver.is_valid():
+            form_driver.save()
+            return redirect('driver_list')
+    context['form_driver'] = form_driver
+    return render(request, 'master/create_driver.html', context)
+
+
+def create_Spbu(request):
+    context = {}
+    form_spbu = SpbuForm(request.POST or None)
+    if request.method == 'POST':
+        if form_spbu.is_valid():
+            form_spbu.save()
+            return redirect('spbu_list')
+    context['form_spbu'] = form_spbu
+    return render(request, 'master/create_spbu.html', context)
+
+
+def create_Product(request):
+    context = {}
+    form_product = ProductForm(request.POST or None)
+    if request.method == 'POST':
+        if form_product.is_valid():
+            form_product.save()
+            return redirect('product_list')
+    context['form_product'] = form_product
+    return render(request, 'master/create_product.html', context)
+
 
 # Create views untuk update
 def update_Merek(request, pk):
@@ -216,6 +264,47 @@ def update_Part(request, pk):
     return render(request, 'master/create_part.html', context)
 
 
+def update_Driver(request, pk):
+    driver = get_object_or_404(Driver, pk=pk)
+    form_driver = DriverForm(request.POST or None, instance=driver)
+    if request.method == 'POST':
+        if form_driver.is_valid():
+            form_driver.save()
+        return redirect('driver_list')
+    context = {
+        'form_driver': form_driver,
+        'page_title': 'Update Driver',
+    }
+    return render(request, 'master/create_driver.html', context)
+
+
+def update_Spbu(request, pk):
+    spbu = get_object_or_404(Spbu, pk=pk)
+    form_spbu = SpbuForm(request.POST or None, instance=spbu)
+    if request.method == 'POST':
+        if form_spbu.is_valid():
+            form_spbu.save()
+        return redirect('spbu_list')
+    context = {
+        'form_spbu': form_spbu,
+        'page_title': 'Update SPBU',
+    }
+    return render(request, 'master/create_spbu.html', context)
+
+
+def update_Product(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    form_product = ProductForm(request.POST or None, instance=product)
+    if request.method == 'POST':
+        if form_product.is_valid():
+            form_product.save()
+        return redirect('product_list')
+    context = {
+        'form_product': form_product,
+        'page_title': 'Update Produk',
+    }
+    return render(request, 'master/create_product.html', context)
+
 
 # Create views untuk delete
 def delete_Merek(request, pk):
@@ -251,6 +340,27 @@ def delete_Part(request, pk):
     if request.method == 'POST':
         part.delete()
     return redirect('part_list')
+
+
+def delete_Driver(request, pk):
+    driver = get_object_or_404(Driver, pk=pk)
+    if request.method == 'POST':
+        driver.delete()
+    return redirect('driver_list')
+
+
+def delete_Spbu(request, pk):
+    spbu = get_object_or_404(Spbu, pk=pk)
+    if request.method == 'POST':
+        spbu.delete()
+    return redirect('spbu_list')
+
+
+def delete_Product(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    if request.method == 'POST':
+        product.delete()
+    return redirect('product_list')
 
 
 # Full Form

@@ -4,7 +4,7 @@
   <div class="card-body px-4 py-3">
     <div class="row align-items-center">
       <div class="col-9">
-        <h4 class="fw-semibold mb-8"><i class="ti ti-tag me-2"></i>Data Merek</h4>
+        <h4 class="fw-semibold mb-8"><i class="ti ti-user me-2"></i>Data Driver</h4>
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -14,7 +14,7 @@
                 >Home</a
               >
             </li>
-            <li class="breadcrumb-item" aria-current="page">Merek</li>
+            <li class="breadcrumb-item" aria-current="page">Driver</li>
           </ol>
         </nav>
       </div>
@@ -34,8 +34,8 @@
   <div class="col-md-4">
     <div class="card border-start border-4 border-primary">
       <div class="card-body py-3">
-        <h6 class="card-title text-muted mb-1"><i class="ti ti-tag me-1"></i> Total Merek</h6>
-        <h3 class="mb-0 text-primary">{{ mereks|length }}</h3>
+        <h6 class="card-title text-muted mb-1"><i class="ti ti-user me-1"></i> Total Driver</h6>
+        <h3 class="mb-0 text-primary">{{ drivers|length }}</h3>
       </div>
     </div>
   </div>
@@ -48,9 +48,9 @@
         <div
           class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2"
         >
-          <h5 class="mb-0"><i class="ti ti-list me-2"></i>Daftar Merek</h5>
-          <a href="{% url 'create_Merek' %}" class="btn btn-primary btn-sm"
-            ><i class="ti ti-plus me-1"></i>Tambah Data Merek</a
+          <h5 class="mb-0"><i class="ti ti-list me-2"></i>Daftar Driver</h5>
+          <a href="{% url 'create_Driver' %}" class="btn btn-primary btn-sm"
+            ><i class="ti ti-plus me-1"></i>Tambah Data Driver</a
           >
         </div>
         <div class="card-body">
@@ -62,24 +62,32 @@
               <thead>
                 <tr>
                   <th>Nama</th>
-                  <th>Deskripsi</th>
+                  <th>Akun User</th>
+                  <th>Nomor SIM</th>
+                  <th>Nomor Telepon</th>
+                  <th>Usia</th>
+                  <th>Alamat</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {% for merek in mereks %}
+                {% for driver in drivers %}
                 <tr>
-                  <td>{{ merek.nama }}</td>
-                  <td>{{ merek.deskripsi }}</td>
+                  <td>{{ driver.name }}</td>
+                  <td>{{ driver.user.username }}</td>
+                  <td>{{ driver.license_number }}</td>
+                  <td>{{ driver.phone_number }}</td>
+                  <td>{{ driver.years_old }}</td>
+                  <td>{{ driver.address }}</td>
                   <td>
                     <a
-                      href="{% url 'update_Merek' merek.id %}"
+                      href="{% url 'update_Driver' driver.id %}"
                       class="btn btn-warning btn-sm"
                     >
                       <i class="ti ti-edit"></i>
                     </a>
                     <form
-                      action="{% url 'delete_Merek' merek.id %}"
+                      action="{% url 'delete_Driver' driver.id %}"
                       method="POST"
                       class="d-inline"
                     >
@@ -96,7 +104,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="3">No posts available.</td>
+                  <td colspan="7">No posts available.</td>
                 </tr>
                 {% endfor %}
               </tbody>

@@ -1,0 +1,143 @@
+{% extends 'base.html' %} {% block content %} {% load static %}
+
+<div class="card bg-light-info shadow-none position-relative overflow-hidden">
+  <div class="card-body px-4 py-3">
+    <div class="row align-items-center">
+      <div class="col-9">
+        <h4 class="fw-semibold mb-8"><i class="ti ti-tool me-2"></i>Detail Maintenance - {{ record.order_reference }}</h4>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+              <a class="text-muted text-decoration-none" href="{% url 'dashboard' %}">Home</a>
+            </li>
+            <li class="breadcrumb-item">
+              <a class="text-muted text-decoration-none" href="{% url 'record_list' %}">Maintenance</a>
+            </li>
+            <li class="breadcrumb-item" aria-current="page">{{ record.order_reference }}</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="col-3">
+        <div class="text-center mb-n5">
+          <img
+            src="{% static 'assets/images/breadcrumb/ChatBc.png' %}"
+            alt=""
+            class="img-fluid mb-n4"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-body">
+        <h5
+          class="card-title mb-3 d-flex align-items-center justify-content-between flex-wrap gap-6"
+        >
+          <span><i class="ti ti-clipboard-list me-2"></i>Informasi Record</span>
+          <span>
+            {% if record.status == 'done' or record.status == 'completed' or record.status == 'approved' %}
+            <span class="badge bg-success">{{ record.get_status_display }}</span>
+            {% elif record.status == 'cancelled' or record.status == 'rejected' %}
+            <span class="badge bg-danger">{{ record.get_status_display }}</span>
+            {% elif record.status == 'draft' %}
+            <span class="badge bg-secondary">{{ record.get_status_display }}</span>
+            {% else %}
+            <span class="badge bg-warning text-dark">{{ record.get_status_display }}</span>
+            {% endif %}
+            <a href="{% url 'update_Record' record.id %}" class="btn btn-warning btn-sm ms-2">
+              <i class="ti ti-edit"></i> Edit
+            </a>
+          </span>
+        </h5>
+        <div class="row">
+          <div class="col-md-6">
+            <table class="table table-sm mb-0">
+              <tr><td>No. Order</td><td>:</td><td><strong>{{ record.order_reference }}</strong></td></tr>
+              <tr><td>Truck</td><td>:</td><td>{{ record.truck.license_plate }} ({{ record.truck.model }})</td></tr>
+              <tr><td>Jenis Maintenance</td><td>:</td><td>{{ record.get_maintenance_type_display|default:"-" }}</td></tr>
+              <tr><td>Tanggal Booking</td><td>:</td><td>{{ record.booking_date|date:"d M Y" }}</td></tr>
+              <tr><td>Tanggal Service</td><td>:</td><td>{{ record.service_date|date:"d M Y" }}</td></tr>
+              <tr><td>Jam Service</td><td>:</td><td>{{ record.service_time|default:"-" }}</td></tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <table class="table table-sm mb-0">
+              <tr><td>Odometer</td><td>:</td><td>{{ record.odometer_reading|default:"-" }} KM</td></tr>
+              <tr><td>Vendor</td><td>:</td><td>{{ record.vendor.name|default:"-" }}</td></tr>
+              <tr><td>Lokasi Service</td><td>:</td><td>{{ record.service_location|default:"-" }}</td></tr>
+              <tr><td>Teknisi</td><td>:</td><td>{{ record.technician_name|default:"-" }}</td></tr>
+              <tr><td>Biaya</td><td>:</td><td>Rp {{ record.cost|default:0 }}</td></tr>
+            </table>
+          </div>
+        </div>
+        {% if record.description %}
+        <hr />
+        <h6>Deskripsi</h6>
+        <p class="text-muted">{{ record.description }}</p>
+        {% endif %}
+        {% if record.notes %}
+        <h6>Catatan</h6>
+        <p class="text-muted">{{ record.notes }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-2">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3"><i class="ti ti-settings me-2"></i>Part Digunakan</h5>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Part</th>
+                <th>Kuantitas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rp in parts %}
+              <tr>
+                <td>{{ rp.part.name }} ({{ rp.part.part_code }})</td>
+                <td>{{ rp.quantity }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="2" class="text-muted">Belum ada part yang tercatat.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3"><i class="ti ti-history me-2"></i>Riwayat Status</h5>
+        <ul class="list-group list-group-flush">
+          {% for log in logs %}
+          <li class="list-group-item">
+            <div class="d-flex justify-content-between">
+              <strong>{{ log.get_log_type_display }}</strong>
+              <small class="text-muted">{{ log.log_date|date:"d M Y H:i" }}</small>
+            </div>
+            <div class="text-muted small">{{ log.log_description }}</div>
+          </li>
+          {% empty %}
+          <li class="list-group-item text-muted">Belum ada riwayat.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}

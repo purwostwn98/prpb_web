@@ -4,7 +4,7 @@
   <div class="card-body px-4 py-3">
     <div class="row align-items-center">
       <div class="col-9">
-        <h4 class="fw-semibold mb-8"><i class="ti ti-tag me-2"></i>Data Merek</h4>
+        <h4 class="fw-semibold mb-8"><i class="ti ti-cpu me-2"></i>Data Device Truck</h4>
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -14,7 +14,7 @@
                 >Home</a
               >
             </li>
-            <li class="breadcrumb-item" aria-current="page">Merek</li>
+            <li class="breadcrumb-item" aria-current="page">Device Truck</li>
           </ol>
         </nav>
       </div>
@@ -30,12 +30,29 @@
     </div>
   </div>
 </div>
+
 <div class="row mt-3">
   <div class="col-md-4">
     <div class="card border-start border-4 border-primary">
       <div class="card-body py-3">
-        <h6 class="card-title text-muted mb-1"><i class="ti ti-tag me-1"></i> Total Merek</h6>
-        <h3 class="mb-0 text-primary">{{ mereks|length }}</h3>
+        <h6 class="card-title text-muted mb-1"><i class="ti ti-cpu me-1"></i> Total Device Terpasang</h6>
+        <h3 class="mb-0 text-primary">{{ devices|length }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-start border-4 border-success">
+      <div class="card-body py-3">
+        <h6 class="card-title text-muted mb-1"><i class="ti ti-circle-check me-1"></i> Truck Punya Device</h6>
+        <h3 class="mb-0 text-success">{{ trucks_with_device }} / {{ total_trucks }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-start border-4 border-warning">
+      <div class="card-body py-3">
+        <h6 class="card-title text-muted mb-1"><i class="ti ti-alert-triangle me-1"></i> Truck Belum Punya Device</h6>
+        <h3 class="mb-0 text-warning">{{ trucks_without_device }}</h3>
       </div>
     </div>
   </div>
@@ -48,9 +65,9 @@
         <div
           class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2"
         >
-          <h5 class="mb-0"><i class="ti ti-list me-2"></i>Daftar Merek</h5>
-          <a href="{% url 'create_Merek' %}" class="btn btn-primary btn-sm"
-            ><i class="ti ti-plus me-1"></i>Tambah Data Merek</a
+          <h5 class="mb-0"><i class="ti ti-list me-2"></i>Daftar Device Truck</h5>
+          <a href="{% url 'create_Device' %}" class="btn btn-primary btn-sm"
+            ><i class="ti ti-plus me-1"></i>Tambah Device Truck</a
           >
         </div>
         <div class="card-body">
@@ -61,25 +78,29 @@
             >
               <thead>
                 <tr>
-                  <th>Nama</th>
-                  <th>Deskripsi</th>
+                  <th>Truck</th>
+                  <th>Model Truck</th>
+                  <th>Device Model / ID</th>
+                  <th>Terpasang Sejak</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {% for merek in mereks %}
+                {% for device in devices %}
                 <tr>
-                  <td>{{ merek.nama }}</td>
-                  <td>{{ merek.deskripsi }}</td>
+                  <td>{{ device.truck.license_plate }}</td>
+                  <td>{{ device.truck.brand }} {{ device.truck.model }}</td>
+                  <td>{{ device.device_model }}</td>
+                  <td>{{ device.installed_at|date:"d M Y H:i" }}</td>
                   <td>
                     <a
-                      href="{% url 'update_Merek' merek.id %}"
+                      href="{% url 'update_Device' device.id %}"
                       class="btn btn-warning btn-sm"
                     >
                       <i class="ti ti-edit"></i>
                     </a>
                     <form
-                      action="{% url 'delete_Merek' merek.id %}"
+                      action="{% url 'delete_Device' device.id %}"
                       method="POST"
                       class="d-inline"
                     >
@@ -96,7 +117,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="3">No posts available.</td>
+                  <td colspan="5">No posts available.</td>
                 </tr>
                 {% endfor %}
               </tbody>

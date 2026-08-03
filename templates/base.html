@@ -56,16 +56,55 @@
                 <span class="hide-menu">Dashboard</span>
               </a>
             </li>
-             <li class="sidebar-item">
-              <a href="/admin" target="_blank" class="sidebar-link {% if page|length > 1 and page.0 == "admin" %}active{% endif %}" aria-expanded="false">
-                <span>
-                  <i class="ti ti-user"></i>
-                </span>
-                <span class="hide-menu">Admin</span>
-              </a>
-            </li>
+          
             <!-- Frontend page -->
-            {% comment %} <li class="sidebar-item">
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                <span class="d-flex">
+                  <i class="ti ti-tool"></i>
+                </span>
+                <span class="hide-menu">Maintenance</span>
+              </a>
+              <ul aria-expanded="false" class="collapse first-level">
+                <li class="sidebar-item">
+                  <a href="/maintenance/list-record" class="sidebar-link {% if page|length > 1 and page.1 == "record" %}active{% endif %}">
+                    <div class="round-16 d-flex align-items-center justify-content-center">
+                      <i class="ti ti-circle"></i>
+                    </div>
+                    <span class="hide-menu">Riwayat Maintenance</span>
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a href="/maintenance/list-device" class="sidebar-link {% if page|length > 1 and page.1 == "device" %}active{% endif %}">
+                    <div class="round-16 d-flex align-items-center justify-content-center">
+                      <i class="ti ti-circle"></i>
+                    </div>
+                    <span class="hide-menu">Device Truck</span>
+                  </a>
+                </li>
+              </ul>
+            </li>
+
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                <span class="d-flex">
+                  <i class="ti ti-truck-delivery"></i>
+                </span>
+                <span class="hide-menu">Fleet Management</span>
+              </a>
+              <ul aria-expanded="false" class="collapse first-level">
+                <li class="sidebar-item">
+                  <a href="/delivery/list-shipping" class="sidebar-link {% if page|length > 1 and page.1 == "shipping" %}active{% endif %}">
+                    <div class="round-16 d-flex align-items-center justify-content-center">
+                      <i class="ti ti-circle"></i>
+                    </div>
+                    <span class="hide-menu">Penugasan Driver & Truck</span>
+                  </a>
+                </li>
+              </ul>
+            </li>
+
+            <li class="sidebar-item">
               <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <span class="d-flex">
                   <i class="ti ti-layout-grid"></i>
@@ -113,8 +152,41 @@
                     <span class="hide-menu">Part</span>
                   </a>
                 </li>
+                <li class="sidebar-item">
+                  <a href="/master/list-driver" class="sidebar-link {% if page|length > 1 and page.1 == "driver" %}active{% endif %}">
+                    <div class="round-16 d-flex align-items-center justify-content-center">
+                      <i class="ti ti-circle"></i>
+                    </div>
+                    <span class="hide-menu">Driver</span>
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a href="/master/list-spbu" class="sidebar-link {% if page|length > 1 and page.1 == "spbu" %}active{% endif %}">
+                    <div class="round-16 d-flex align-items-center justify-content-center">
+                      <i class="ti ti-circle"></i>
+                    </div>
+                    <span class="hide-menu">SPBU</span>
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a href="/master/list-product" class="sidebar-link {% if page|length > 1 and page.1 == "product" %}active{% endif %}">
+                    <div class="round-16 d-flex align-items-center justify-content-center">
+                      <i class="ti ti-circle"></i>
+                    </div>
+                    <span class="hide-menu">Produk</span>
+                  </a>
+                </li>
               </ul>
-            </li> {% endcomment %}
+            </li>
+            <li class="sidebar-item">
+              <a href="/admin" target="_blank" class="sidebar-link {% if page|length > 1 and page.0 == "admin" %}active{% endif %}" aria-expanded="false">
+                <span>
+                  <i class="ti ti-user"></i>
+                </span>
+                <span class="hide-menu">Admin</span>
+              </a>
+            </li>
+         
           </ul>
         </nav>
 

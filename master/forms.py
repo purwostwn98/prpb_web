@@ -1,5 +1,5 @@
 from django import forms
-from .models import Merek, Truck, Company, Vendor, Part
+from .models import Merek, Truck, Company, Vendor, Part, Driver, Spbu, Product
 
 
 class MerekForm(forms.ModelForm):
@@ -181,14 +181,13 @@ class VendorForm(forms.ModelForm):
                 'invalid': 'Unggah file logo yang valid (format gambar seperti PNG, JPEG, atau GIF).',
             }
         }
-        # fields = ['name', 'address', 'phone_number', 'email', 'logo']
-        # widgets = {
-        #     'name': forms.TextInput(attrs={'class': 'form-control'}),
-        #     'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        #     'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
-        #     'email': forms.EmailInput(attrs={'class': 'form-control'}),
-        #     'logo': forms.ClearableFileInput(attrs={'class': 'form-control-file'}),
-        # }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nama vendor'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Masukkan alamat lengkap vendor'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nomor telepon vendor'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan alamat email vendor'}),
+            'logo': forms.ClearableFileInput(attrs={'class': 'form-control-file'}),
+        }
 
 class PartForm(forms.ModelForm):
     class Meta:
@@ -242,14 +241,143 @@ class PartForm(forms.ModelForm):
             },
             #'vendor':{}
         }
-        # fields = [
-        #     'name','part_code','jenis_part',
-        #     'description','quantity','unit_price','vendor'
-        #     ]
-        # widgets = {
-        #     'name': forms.TextInput(attrs={'class': 'form-control'}),
-        #     'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        #     'vendor': forms.Select(attrs={'class': 'form-control'}),
-        #     'price': forms.NumberInput(attrs={'class': 'form-control'}),
-        #     'quantity': forms.NumberInput(attrs={'class': 'form-control'}),
-        # }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nama part'}),
+            'part_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan kode part'}),
+            'jenis_part': forms.Select(attrs={'class': 'form-select'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Masukkan deskripsi part'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan kuantitas'}),
+            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan harga satuan'}),
+            'vendor': forms.SelectMultiple(attrs={'class': 'form-select'}),
+        }
+
+
+class DriverForm(forms.ModelForm):
+    class Meta:
+        model = Driver
+        exclude = ['created_at', 'updated_at']
+
+        labels = {
+            'name': 'Nama Driver',
+            'user': 'Akun User',
+            'license_number': 'Nomor SIM',
+            'phone_number': 'Nomor Telepon',
+            'years_old': 'Usia',
+            'address': 'Alamat',
+        }
+
+        error_messages = {
+            'name': {
+                'required': 'Nama driver harus diisi.',
+                'max_length': 'Nama tidak boleh lebih dari 255 karakter.',
+            },
+            'user': {
+                'required': 'Akun user harus dipilih.',
+                'unique': 'User ini sudah terhubung dengan driver lain.',
+            },
+            'license_number': {
+                'required': 'Nomor SIM harus diisi.',
+                'max_length': 'Nomor SIM tidak boleh lebih dari 100 karakter.',
+                'unique': 'Nomor SIM ini sudah terdaftar.',
+            },
+            'phone_number': {
+                'required': 'Nomor telepon harus diisi.',
+                'max_length': 'Nomor telepon tidak boleh lebih dari 20 karakter.',
+            },
+            'years_old': {
+                'required': 'Usia harus diisi.',
+                'invalid': 'Masukkan angka yang valid.',
+            },
+            'address': {
+                'required': 'Alamat harus diisi.',
+            },
+        }
+
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nama driver'}),
+            'user': forms.Select(attrs={'class': 'form-select'}),
+            'license_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nomor SIM'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nomor telepon'}),
+            'years_old': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan usia'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Masukkan alamat lengkap'}),
+        }
+
+
+class SpbuForm(forms.ModelForm):
+    class Meta:
+        model = Spbu
+        exclude = ['created_at', 'updated_at']
+
+        labels = {
+            'code': 'Kode SPBU',
+            'name': 'Nama SPBU',
+            'city': 'Kota',
+            'address': 'Alamat',
+            'address2': 'Alamat 2',
+            'owner': 'Pemilik',
+            'latitude': 'Garis Lintang',
+            'longitude': 'Garis Bujur',
+            'mdpl': 'MDPL',
+            'distance': 'Jarak dari TBBM',
+            'phone_number': 'Nomor Telepon',
+        }
+
+        error_messages = {
+            'code': {
+                'required': 'Kode SPBU harus diisi.',
+                'max_length': 'Kode SPBU tidak boleh lebih dari 50 karakter.',
+                'unique': 'Kode SPBU ini sudah ada.',
+            },
+        }
+
+        widgets = {
+            'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan kode SPBU'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nama SPBU'}),
+            'city': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan kota'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Masukkan alamat'}),
+            'address2': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Alamat tambahan (opsional)'}),
+            'owner': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan pemilik'}),
+            'latitude': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': 'Contoh: -7.560000'}),
+            'longitude': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': 'Contoh: 110.830000'}),
+            'mdpl': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': 'Meter di atas permukaan laut'}),
+            'distance': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': 'Jarak dari TBBM ke SPBU'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nomor telepon'}),
+        }
+
+
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        exclude = ['created_at', 'updated_at']
+
+        labels = {
+            'name': 'Nama Produk',
+            'description': 'Deskripsi',
+            'price': 'Harga',
+            'stock': 'Stok',
+        }
+
+        error_messages = {
+            'name': {
+                'required': 'Nama produk harus diisi.',
+                'max_length': 'Nama produk tidak boleh lebih dari 255 karakter.',
+            },
+            'description': {
+                'required': 'Deskripsi harus diisi.',
+            },
+            'price': {
+                'required': 'Harga harus diisi.',
+                'invalid': 'Masukkan angka yang valid.',
+            },
+            'stock': {
+                'required': 'Stok harus diisi.',
+                'invalid': 'Masukkan angka yang valid.',
+            },
+        }
+
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nama produk'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Masukkan deskripsi produk'}),
+            'price': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan harga'}),
+            'stock': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan stok'}),
+        }

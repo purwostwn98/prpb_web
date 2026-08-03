@@ -1,14 +1,16 @@
 
 
 from itertools import count
-from django.shortcuts import render # type: ignore
+from django.shortcuts import render, redirect, get_object_or_404 # type: ignore
 from django.http import JsonResponse # type: ignore
 
 from master.models import Truck
 from maintenance.models import Record as MaintenanceRecord
-from maintenance.models import TruckDeviceModel
-from django.db.models import Count, Max, OuterRef, Subquery # type: ignore
+from maintenance.models import TruckDeviceModel, Log, RecordParts
+from maintenance.forms import RecordForm, TruckDeviceForm
+from django.db.models import Count, Max, OuterRef, Subquery, Q # type: ignore
 from django.db.models.functions import TruncMonth # type: ignore
+from django.core.paginator import Paginator # type: ignore
 
 from django.utils import timezone
 from datetime import datetime, timedelta, date # type: ignore
@@ -153,9 +155,12 @@ def dashboard_truck(request):
         ## Hitung Reliability
         reliability = (pembagi_reliability - jumlah_gagal) / pembagi_reliability * 100 if pembagi_reliability > 0 else 0
 
+    truck_device = TruckDeviceModel.objects.filter(truck=truck_data).order_by('-installed_at').first() if truck_data else None
+
     context = {
         'page': ['dashboard', 'dashboard'], 'title': 'Dashboard Truck',
         'truck_data': truck_data,
+        'device_model': truck_device.device_model if truck_device else None,
         'oee_value': round(oee_value,2),
         'mttf': round(mttf,2),
         'jumlah_maintenance': len(maintenance_records),
@@ -403,13 +408,221 @@ def getMaintenanceHistory(request, id):
     View function to get the maintenance history for a specific truck.
     """
     truck_id = id
-    maintenance_records = MaintenanceRecord.objects.filter(truck__id=truck_id).order_by('-service_date')[:5]
+    maintenance_records = (
+        MaintenanceRecord.objects
+        .filter(truck__id=truck_id)
+        .select_related('vendor')
+        .order_by('-service_date')[:8]
+    )
+    status_row_class = {
+        'done': 'table-success',
+        'completed': 'table-success',
+        'approved': 'table-success',
+        'cancelled': 'table-danger',
+        'rejected': 'table-danger',
+        'draft': 'table-secondary',
+    }
     history = []
     for record in maintenance_records:
         history.append({
             'date': record.service_date.strftime('%Y-%m-%d'),
             'odometer': record.odometer_reading,
-            'service': "Fuel Filter Replacement",
-            'row_class' : 'table-success',
+            'service': record.get_maintenance_type_display() or 'Tidak diketahui',
+            'vendor': record.vendor.name if record.vendor else '-',
+            'cost': float(record.cost) if record.cost else 0,
+            'status': record.get_status_display(),
+            'row_class': status_row_class.get(record.status, 'table-warning'),
         })
     return JsonResponse({'history': history})
+
+
+# Manajemen Maintenance Truck (Record)
+
+def record_list(request):
+    """
+    View function to list all maintenance records.
+    Server-side paginated and filterable: with 5,600+ records, dumping
+    everything into one client-side DataTable would not scale.
+    """
+    records = MaintenanceRecord.objects.select_related('truck', 'vendor').order_by('-service_date', '-id')
+
+    search = request.GET.get('q', '').strip()
+    if search:
+        records = records.filter(
+            Q(order_reference__icontains=search) |
+            Q(truck__license_plate__icontains=search) |
+            Q(technician_name__icontains=search)
+        )
+
+    status_filter = request.GET.getlist('status')
+    if status_filter:
+        records = records.filter(status__in=status_filter)
+
+    paginator = Paginator(records, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    total_count = MaintenanceRecord.objects.count()
+    done_count = MaintenanceRecord.objects.filter(status__in=['done', 'completed', 'approved']).count()
+    pending_count = MaintenanceRecord.objects.filter(
+        status__in=['draft', 'requested', 'awaiting_approval', 'in_progress']
+    ).count()
+
+    context = {
+        'page_obj': page_obj,
+        'total_count': total_count,
+        'done_count': done_count,
+        'pending_count': pending_count,
+        'search': search,
+        'status_filter': status_filter,
+        'status_choices': MaintenanceRecord.STATUS_TYPE_CHOICES,
+        'page': ['maintenance', 'record'],
+        'title': 'Daftar Maintenance',
+    }
+    return render(request, 'maintenance/record_list.html', context)
+
+
+def record_detail(request, pk):
+    """
+    View function to show the detail of a maintenance record: info, parts used, and log history.
+    """
+    record = get_object_or_404(MaintenanceRecord.objects.select_related('truck', 'vendor'), pk=pk)
+    parts = RecordParts.objects.filter(record=record).select_related('part')
+    logs = Log.objects.filter(record=record).order_by('-log_date')
+    context = {
+        'record': record,
+        'parts': parts,
+        'logs': logs,
+        'page': ['maintenance', 'record'],
+        'title': 'Detail Maintenance',
+    }
+    return render(request, 'maintenance/record_detail.html', context)
+
+
+def create_Record(request):
+    """
+    View function to create a new maintenance record.
+    """
+    context = {'page': ['maintenance', 'record'], 'title': 'Tambah Maintenance'}
+    form_record = RecordForm(request.POST or None)
+    if request.method == 'POST':
+        if form_record.is_valid():
+            record = form_record.save(commit=False)
+            record.input_by = request.user.id if request.user.is_authenticated else None
+            record.save()
+            Log.objects.create(
+                record=record,
+                log_type=record.status,
+                log_description=f"Record {record.order_reference} dibuat dengan status {record.get_status_display()}.",
+                updated_by=request.user.id if request.user.is_authenticated else 0,
+            )
+            return redirect('record_list')
+    context['form_record'] = form_record
+    return render(request, 'maintenance/create_record.html', context)
+
+
+def update_Record(request, pk):
+    """
+    View function to update an existing maintenance record.
+    """
+    record = get_object_or_404(MaintenanceRecord, pk=pk)
+    old_status = record.status
+    form_record = RecordForm(request.POST or None, instance=record)
+    if request.method == 'POST':
+        if form_record.is_valid():
+            updated_record = form_record.save()
+            if old_status != updated_record.status:
+                Log.objects.create(
+                    record=updated_record,
+                    log_type=updated_record.status,
+                    log_description=f"Status berubah dari {old_status} menjadi {updated_record.get_status_display()}.",
+                    updated_by=request.user.id if request.user.is_authenticated else 0,
+                )
+            else:
+                Log.objects.create(
+                    record=updated_record,
+                    log_type=updated_record.status,
+                    log_description=f"Record {updated_record.order_reference} diperbarui.",
+                    updated_by=request.user.id if request.user.is_authenticated else 0,
+                )
+        return redirect('record_list')
+    context = {
+        'form_record': form_record,
+        'page_title': 'Update Maintenance',
+        'page': ['maintenance', 'record'],
+        'title': 'Update Maintenance',
+    }
+    return render(request, 'maintenance/create_record.html', context)
+
+
+def delete_Record(request, pk):
+    """
+    View function to delete a maintenance record.
+    """
+    record = get_object_or_404(MaintenanceRecord, pk=pk)
+    if request.method == 'POST':
+        record.delete()
+    return redirect('record_list')
+
+
+# Manajemen Perangkat IoT / Device Truck
+
+def device_list(request):
+    """
+    View function to list all truck IoT devices.
+    """
+    devices = TruckDeviceModel.objects.select_related('truck', 'truck__brand').order_by('-installed_at')
+    total_trucks = Truck.objects.count()
+    trucks_with_device = devices.values('truck_id').distinct().count()
+    trucks_without_device = total_trucks - trucks_with_device
+    context = {
+        'devices': devices,
+        'total_trucks': total_trucks,
+        'trucks_with_device': trucks_with_device,
+        'trucks_without_device': trucks_without_device,
+        'page': ['maintenance', 'device'],
+        'title': 'Daftar Device Truck',
+    }
+    return render(request, 'maintenance/device_list.html', context)
+
+
+def create_Device(request):
+    """
+    View function to assign a new IoT device to a truck.
+    """
+    context = {'page': ['maintenance', 'device'], 'title': 'Tambah Device Truck'}
+    form_device = TruckDeviceForm(request.POST or None)
+    if request.method == 'POST':
+        if form_device.is_valid():
+            form_device.save()
+            return redirect('device_list')
+    context['form_device'] = form_device
+    return render(request, 'maintenance/create_device.html', context)
+
+
+def update_Device(request, pk):
+    """
+    View function to update an existing truck IoT device.
+    """
+    device = get_object_or_404(TruckDeviceModel, pk=pk)
+    form_device = TruckDeviceForm(request.POST or None, instance=device)
+    if request.method == 'POST':
+        if form_device.is_valid():
+            form_device.save()
+        return redirect('device_list')
+    context = {
+        'form_device': form_device,
+        'page_title': 'Update Device Truck',
+        'page': ['maintenance', 'device'],
+        'title': 'Update Device Truck',
+    }
+    return render(request, 'maintenance/create_device.html', context)
+
+
+def delete_Device(request, pk):
+    """
+    View function to remove a truck IoT device.
+    """
+    device = get_object_or_404(TruckDeviceModel, pk=pk)
+    if request.method == 'POST':
+        device.delete()
+    return redirect('device_list')

@@ -41,6 +41,87 @@
 
 <div class="row mt-2">
   <div class="col-md-12">
+    <div class="card">
+      <div class="card-body">
+        <h5
+          class="card-title mb-3 d-flex align-items-center justify-content-between flex-wrap gap-6"
+        >
+          <span><i class="fas fa-truck me-2"></i>Truck Details</span>
+          {% if truck_data.status == 'active' %}
+          <span class="badge bg-success">Active</span>
+          {% elif truck_data.status == 'maintenance' %}
+          <span class="badge bg-warning">In Maintenance</span>
+          {% else %}
+          <span class="badge bg-danger">Inactive</span>
+          {% endif %}
+        </h5>
+        <div class="row">
+          <div class="col-md-6">
+            <table class="table table-sm mb-0">
+              <tr>
+                <td>License Plate</td>
+                <td>:</td>
+                <td><strong>{{ truck_data.license_plate }}</strong></td>
+              </tr>
+              <tr>
+                <td>Brand</td>
+                <td>:</td>
+                <td>{{ truck_data.brand.nama|default:"-" }}</td>
+              </tr>
+              <tr>
+                <td>Model</td>
+                <td>:</td>
+                <td>{{ truck_data.model }}</td>
+              </tr>
+              <tr>
+                <td>Year</td>
+                <td>:</td>
+                <td>{{ truck_data.year }}</td>
+              </tr>
+              <tr>
+                <td>Capacity</td>
+                <td>:</td>
+                <td>{{ truck_data.capacity }} Liter</td>
+              </tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <table class="table table-sm mb-0">
+              <tr>
+                <td>Current Odometer</td>
+                <td>:</td>
+                <td>{{ truck_data.current_odometer }} KM</td>
+              </tr>
+              <tr>
+                <td>Acquisition Date</td>
+                <td>:</td>
+                <td>{{ truck_data.acquisition_date|date:"d M Y"|default:"-" }}</td>
+              </tr>
+              <tr>
+                <td>Chassis Number</td>
+                <td>:</td>
+                <td>{{ truck_data.chassis_number|default:"-" }}</td>
+              </tr>
+              <tr>
+                <td>Engine Number</td>
+                <td>:</td>
+                <td>{{ truck_data.engine_number|default:"-" }}</td>
+              </tr>
+              <tr>
+                <td>IoT Device</td>
+                <td>:</td>
+                <td>{{ device_model|default:"-" }}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-2">
+  <div class="col-md-12">
     <div class="card border-info">
       <div class="card-header bg-info text-white">
         <i class="fas fa-robot me-2"></i>Preventive Maintenance (Using
@@ -239,6 +320,14 @@
                   <i class="fas fa-tachometer-alt mb-3"></i> | Fuel Filter
                   Pressure (mpsi)
                 </h5>
+                <p class="text-muted mb-2">
+                  Device: <strong>{{ device_model|default:"Not linked" }}</strong>
+                  {% if not device_model %}
+                  <span class="badge bg-secondary"
+                    >No IoT sensor attached — pressure data unavailable</span
+                  >
+                  {% endif %}
+                </p>
                 <canvas id="pressureChart" height="150"></canvas>
                 <div class="alert alert-warning mt-3">
                   <i class="fas fa-exclamation-triangle me-2"></i>
@@ -272,9 +361,9 @@
                 <th>Date</th>
                 <th>Service</th>
                 <th>Odometer (KM)</th>
-                {% comment %}
+                <th>Vendor</th>
                 <th>Cost</th>
-                {% endcomment %}
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -282,17 +371,17 @@
                 <td>15 Mar 2024</td>
                 <td>Filter replaced</td>
                 <td>159,806,00</td>
-                {% comment %}
-                <td>Rp 560,000,-</td>
-                {% endcomment %}
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
               </tr>
               <tr class="table-warning">
                 <td>02 Feb 2024</td>
                 <td>Filter cleaned</td>
                 <td>150,806,00</td>
-                {% comment %}
-                <td>Rp 160,000,-</td>
-                {% endcomment %}
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
               </tr>
             </tbody>
           </table>
@@ -684,10 +773,17 @@
         var tableBody = $(".table-history tbody");
         tableBody.empty(); // Clear existing rows
         data.history.forEach(function (record) {
-          var row = `<tr class="${
-            record.row_class
-          }"><td>${record.date}</td>
-          <td>${record.service}</td><td>${record.odometer}</td></tr>`;
+          var costFormatted = record.cost
+            ? "Rp " + record.cost.toLocaleString("id-ID")
+            : "-";
+          var row = `<tr class="${record.row_class}">
+            <td>${record.date}</td>
+            <td>${record.service}</td>
+            <td>${record.odometer}</td>
+            <td>${record.vendor}</td>
+            <td>${costFormatted}</td>
+            <td>${record.status}</td>
+          </tr>`;
           tableBody.append(row);
         });
       },

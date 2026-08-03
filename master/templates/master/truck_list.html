@@ -4,7 +4,7 @@
   <div class="card-body px-4 py-3">
     <div class="row align-items-center">
       <div class="col-9">
-        <h4 class="fw-semibold mb-8">Data Truck</h4>
+        <h4 class="fw-semibold mb-8"><i class="ti ti-truck me-2"></i>Data Truck</h4>
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -30,16 +30,30 @@
     </div>
   </div>
 </div>
+<div class="row mt-3">
+  <div class="col-md-4">
+    <div class="card border-start border-4 border-primary">
+      <div class="card-body py-3">
+        <h6 class="card-title text-muted mb-1"><i class="ti ti-truck me-1"></i> Total Truck</h6>
+        <h3 class="mb-0 text-primary">{{ trucks|length }}</h3>
+      </div>
+    </div>
+  </div>
+</div>
+
 <section>
-  <div class="row">
+  <div class="row mt-2">
     <div class="col-12">
       <div class="card">
+        <div
+          class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2"
+        >
+          <h5 class="mb-0"><i class="ti ti-list me-2"></i>Daftar Truck</h5>
+          <a href="{% url 'create_Truck' %}" class="btn btn-primary btn-sm"
+            ><i class="ti ti-plus me-1"></i>Tambah Data Truck</a
+          >
+        </div>
         <div class="card-body">
-          <div class="mb-2">
-            <a href="{% url 'create_Truck' %}" class="btn btn-primary"
-              >Tambah Data Truck</a
-            >
-          </div>
           <div class="table-responsive">
             <table
               id="zero_config"
@@ -57,8 +71,6 @@
                   <th>Tanggal Akuisisi</th>
                   <th>Nomor Mesin</th>
                   <th>Nomor Chassis</th>
-                  <th>Dibuat Pada</th>
-                  <th>Diupdate Pada</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
@@ -71,12 +83,18 @@
                   <td>{{ truck.year }}</td>
                   <td>{{ truck.capacity }}</td>
                   <td>{{ truck.current_odometer }}</td>
-                  <td>{{ truck.status }}</td>
+                  <td>
+                    {% if truck.status == 'active' %}
+                    <span class="badge bg-success">Active</span>
+                    {% elif truck.status == 'maintenance' %}
+                    <span class="badge bg-warning">In Maintenance</span>
+                    {% else %}
+                    <span class="badge bg-danger">Inactive</span>
+                    {% endif %}
+                  </td>
                   <td>{{ truck.acquisition_date }}</td>
                   <td>{{ truck.engine_number }}</td>
                   <td>{{ truck.chassis_number }}</td>
-                  <td>{{ truck.created_at }}</td>
-                  <td>{{ truck.updated_at }}</td>
                   <td>
                     <a
                       href="{% url 'update_Truck' truck.id %}"
@@ -102,7 +120,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="13">No posts available.</td>
+                  <td colspan="11">No posts available.</td>
                 </tr>
                 {% endfor %}
               </tbody>

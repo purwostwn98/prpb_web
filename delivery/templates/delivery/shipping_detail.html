@@ -1,0 +1,126 @@
+{% extends 'base.html' %} {% block content %} {% load static %}
+
+<div class="card bg-light-info shadow-none position-relative overflow-hidden">
+  <div class="card-body px-4 py-3">
+    <div class="row align-items-center">
+      <div class="col-9">
+        <h4 class="fw-semibold mb-8"><i class="ti ti-truck-delivery me-2"></i>Detail Pengiriman - {{ shipping.delivery_number }}</h4>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+              <a class="text-muted text-decoration-none" href="{% url 'dashboard' %}">Home</a>
+            </li>
+            <li class="breadcrumb-item">
+              <a class="text-muted text-decoration-none" href="{% url 'shipping_list' %}">Pengiriman</a>
+            </li>
+            <li class="breadcrumb-item" aria-current="page">{{ shipping.delivery_number }}</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="col-3">
+        <div class="text-center mb-n5">
+          <img
+            src="{% static 'assets/images/breadcrumb/ChatBc.png' %}"
+            alt=""
+            class="img-fluid mb-n4"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-body">
+        <h5
+          class="card-title mb-3 d-flex align-items-center justify-content-between flex-wrap gap-6"
+        >
+          <span><i class="ti ti-clipboard-list me-2"></i>Informasi Pengiriman</span>
+          <span>
+            {% if shipping.status == 'completed' %}
+            <span class="badge bg-success">{{ shipping.get_status_display }}</span>
+            {% elif shipping.status == 'cancelled' %}
+            <span class="badge bg-danger">{{ shipping.get_status_display }}</span>
+            {% elif shipping.status == 'draft' %}
+            <span class="badge bg-secondary">{{ shipping.get_status_display }}</span>
+            {% else %}
+            <span class="badge bg-warning text-dark">{{ shipping.get_status_display }}</span>
+            {% endif %}
+            <a href="{% url 'update_Shipping' shipping.id %}" class="btn btn-warning btn-sm ms-2">
+              <i class="ti ti-edit"></i> Edit
+            </a>
+          </span>
+        </h5>
+        <div class="row">
+          <div class="col-md-6">
+            <table class="table table-sm mb-0">
+              <tr><td>No. Pengiriman</td><td>:</td><td><strong>{{ shipping.delivery_number }}</strong></td></tr>
+              <tr><td>Driver</td><td>:</td><td>{{ shipping.driver.name|default:"-" }}</td></tr>
+              <tr><td>Truck</td><td>:</td><td>{{ shipping.truck.license_plate|default:"-" }} {{ shipping.truck.model|default:"" }}</td></tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <table class="table table-sm mb-0">
+              <tr><td>Tanggal Order</td><td>:</td><td>{{ shipping.order_date|date:"d M Y" }}</td></tr>
+              <tr><td>Tanggal Kirim</td><td>:</td><td>{{ shipping.delivery_date|date:"d M Y"|default:"-" }}</td></tr>
+            </table>
+          </div>
+        </div>
+        {% if shipping.notes %}
+        <hr />
+        <h6>Catatan</h6>
+        <p class="text-muted">{{ shipping.notes }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-2">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3"><i class="ti ti-map-pin me-2"></i>Tujuan Pengiriman</h5>
+        {% for dest in destinations %}
+        <div class="card mb-3 border-start border-4 border-info">
+          <div class="card-body py-3">
+            <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
+              <strong>{{ dest.spbu.name|default:dest.spbu.code }}</strong>
+              <span class="text-muted small">OL: {{ dest.ol_number }} &middot; {{ dest.estimated_distance_km }} km</span>
+            </div>
+            <p class="text-muted small mb-2">{{ dest.spbu.address|default:"-" }}</p>
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead>
+                  <tr>
+                    <th>Produk</th>
+                    <th>Kuantitas</th>
+                    <th>Harga Satuan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in dest.items.all %}
+                  <tr>
+                    <td>{{ item.product.name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>Rp {{ item.unit_price }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="3" class="text-muted">Belum ada produk.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-muted">Belum ada tujuan pengiriman yang tercatat.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
