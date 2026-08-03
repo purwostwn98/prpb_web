@@ -22,58 +22,170 @@
     </div>
   </div>
 </div>
+
 <div class="row">
+  <div class="col-md-4">
+    <div class="card border-start border-4 border-primary mx-2">
+      <div class="card-body">
+        <h5 class="card-title text-muted"><i class="ti ti-truck me-1"></i> Total Trucks</h5>
+        <h2 class="text-primary mb-0">{{ truck_count }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-start border-4 border-success mx-2">
+      <div class="card-body">
+        <h5 class="card-title text-muted"><i class="ti ti-circle-check me-1"></i> Active Trucks</h5>
+        <h2 class="text-success mb-0">{{ active_count }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-start border-4 border-warning mx-2">
+      <div class="card-body">
+        <h5 class="card-title text-muted"><i class="ti ti-tools me-1"></i> In Maintenance</h5>
+        <h2 class="text-warning mb-0">{{ maintenance_count }}</h2>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-2">
+  <div class="col-md-4">
+    <div class="card border-start border-4 border-info mx-2">
+      <div class="card-body">
+        <h5 class="card-title text-muted"><i class="ti ti-history me-1"></i> Total Maintenance Records</h5>
+        <h2 class="text-info mb-0">{{ total_maintenance_count }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-start border-4 border-secondary mx-2">
+      <div class="card-body">
+        <h5 class="card-title text-muted"><i class="ti ti-chart-bar me-1"></i> Avg Records / Truck</h5>
+        <h2 class="text-secondary mb-0">{{ avg_records_per_truck }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-start border-4 border-danger mx-2">
+      <div class="card-body">
+        <h5 class="card-title text-muted"><i class="ti ti-alert-triangle me-1"></i> Never Serviced</h5>
+        <h2 class="text-danger mb-0">{{ never_serviced_count }}</h2>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if never_serviced_count > 0 %}
+<div class="row mt-2">
+  <div class="col-12">
+    <div class="alert alert-warning mx-2 mb-0">
+      <strong><i class="ti ti-alert-triangle me-1"></i> {{ never_serviced_count }} truck(s) have no maintenance history:</strong>
+      {% for truck in never_serviced_trucks %}
+        <span class="badge bg-warning text-dark">{{ truck.license_plate }}</span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row mt-4">
   <div class="col-md-6">
     <div class="card mx-2">
       <div class="card-body">
-        <h5 class="card-title">Total Trucks</h5>
-        <h2 class="text-primary">{{ truck_count }}</h2>
+        <h5 class="card-title">Maintenance Activity Trend (Last 6 Months)</h5>
+        <canvas id="trendChart"></canvas>
       </div>
     </div>
   </div>
-  {% comment %}
+  <div class="col-md-3">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Maintenance Type</h5>
+        <canvas id="typeChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Brand Statistic</h5>
+        <canvas id="statisticBrand"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-2">
   <div class="col-md-4">
-    <div class="card">
+    <div class="card mx-2">
       <div class="card-body">
-        <h5 class="card-title">Avg Fuel Efficiency</h5>
-        <h2 class="text-success">-</h2>
+        <h5 class="card-title mb-3">Top 5 Most-Serviced Trucks</h5>
+        <ul class="list-group list-group-flush">
+          {% for t in top_trucks %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ t.truck__license_plate }} <small class="text-muted">{{ t.truck__model }}</small>
+            <span class="badge bg-primary rounded-pill">{{ t.count }}</span>
+          </li>
+          {% empty %}
+          <li class="list-group-item text-muted">No maintenance records yet.</li>
+          {% endfor %}
+        </ul>
       </div>
     </div>
   </div>
-  {% endcomment %}
-  <div class="col-md-6">
+  <div class="col-md-8">
     <div class="card">
       <div class="card-body">
-        <h5 class="card-title">Maintenance Due</h5>
-        <h2 class="text-danger">0</h2>
+        <h5 class="card-title mb-3">Recent Maintenance Activity</h5>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped">
+            <thead>
+              <tr>
+                <th>Order Ref</th>
+                <th>Truck</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th>Vendor</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in recent_records %}
+              <tr>
+                <td>{{ record.order_reference }}</td>
+                <td>{{ record.truck.license_plate }}</td>
+                <td>{{ record.get_maintenance_type_display|default:"-" }}</td>
+                <td>{{ record.service_date|date:"d M Y" }}</td>
+                <td>{{ record.vendor.name|default:"-" }}</td>
+                <td>
+                  {% if record.status == 'done' or record.status == 'completed' or record.status == 'approved' %}
+                  <span class="badge bg-success">{{ record.get_status_display }}</span>
+                  {% elif record.status == 'cancelled' or record.status == 'rejected' %}
+                  <span class="badge bg-danger">{{ record.get_status_display }}</span>
+                  {% elif record.status == 'draft' %}
+                  <span class="badge bg-secondary">{{ record.get_status_display }}</span>
+                  {% else %}
+                  <span class="badge bg-warning text-dark">{{ record.get_status_display|default:"-" }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="text-muted">No maintenance records yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
-  <!-- <div class="col-md-4">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="card-title">Fuel Cost (Monthly)</h5>
-        <h2 class="text-warning">Rp 5,400,000,-</h2>
-      </div>
-    </div>
-  </div> -->
 </div>
 
 <div class="row mt-2">
   <div class="col-md-12">
     <div class="card mx-2">
       <div class="card-body">
-        {% comment %}
-        <h5 class="card-title mb-3">⚠️ Maintenance Alerts</h5>
-        <div class="alert alert-warning">
-          <strong>Truck AG8957UV</strong> - Fuel pressure dropped 15% (Clogged
-          filter suspected)
-        </div>
-        <div class="alert alert-danger">
-          <strong>Truck AG9822UV</strong> - Odometer 85,000km (Fuel filter
-          service overdue)
-        </div>
-        {% endcomment %}
         <div class="card mt-4">
           <div class="card-body">
             <h5 class="card-title mb-3">Truck List</h5>
@@ -89,9 +201,9 @@
                     <th>Model</th>
                     <th>Year</th>
                     <th>Odometer (km)</th>
-                    {% comment %}
+                    <th>Total Services</th>
                     <th>Last Service</th>
-                    {% endcomment %}
+                    <th>Device Model</th>
                     <th>Status</th>
                     <th>Action</th>
                   </tr>
@@ -104,13 +216,13 @@
                     <td>{{ truck.model }}</td>
                     <td>{{ truck.year }}</td>
                     <td>{{ truck.current_odometer }}</td>
-                    {% comment %}
-                    <td>{{ truck.last_service_date|date:"Y-m-d" }}</td>
-                    {% endcomment %}
+                    <td>{{ truck.services_count }}</td>
+                    <td>{{ truck.last_service_date|date:"d M Y"|default:"-" }}</td>
+                    <td>{{ truck.device_model|default:"-" }}</td>
                     <td>
                       {% if truck.status == 'active' %}
                       <span class="badge bg-success">Active</span>
-                      {% elif truck.status == 'in_maintenance' %}
+                      {% elif truck.status == 'maintenance' %}
                       <span class="badge bg-warning">In Maintenance</span>
                       {% else %}
                       <span class="badge bg-danger">Inactive</span>
@@ -137,17 +249,6 @@
   </div>
 </div>
 
-<div class="row mt-4">
-  <div class="col-md-4">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="card-title">Brand Statistic</h5>
-        <canvas id="statisticBrand"></canvas>
-      </div>
-    </div>
-  </div>
-</div>
-
 {% endblock content %} {% block js_block %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link
@@ -162,6 +263,8 @@
     // Initialize tooltips
     $('[data-toggle="tooltip"]').tooltip();
     updateStatisticBrandChart();
+    updateTrendChart();
+    updateTypeChart();
   });
 </script>
 <script>
@@ -206,24 +309,71 @@
         }
       },
     });
-    // Initial load
   }
 </script>
 <script>
-  // Fuel Efficiency by Brand
-  const fuelCtx = document.getElementById("fuelChart").getContext("2d");
-  new Chart(fuelCtx, {
-    type: "bar",
-    data: {
-      labels: ["Hino", "Isuzu", "Mitsubishi", "UD Trucks"],
-      datasets: [
-        {
-          label: "Avg km/L",
-          data: [5.2, 5.8, 4.1, 5.5],
-          backgroundColor: ["#4e73df", "#1cc88a", "#e74a3b", "#f6c23e"],
-        },
-      ],
-    },
-  });
+  var trendChart;
+  function updateTrendChart() {
+    $.ajax({
+      url: "/maintenance/dinamis/maintenance-trend-chart/",
+      method: "GET",
+      success: function (data) {
+        var ctx = document.getElementById("trendChart").getContext("2d");
+        trendChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                label: "Maintenance Records",
+                data: data.values,
+                borderColor: "#4e73df",
+                backgroundColor: "rgba(78, 115, 223, 0.1)",
+                tension: 0.3,
+                fill: true,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } },
+          },
+        });
+      },
+    });
+  }
+</script>
+<script>
+  var typeChart;
+  function updateTypeChart() {
+    $.ajax({
+      url: "/maintenance/dinamis/maintenance-type-chart/",
+      method: "GET",
+      success: function (data) {
+        var ctx = document.getElementById("typeChart").getContext("2d");
+        typeChart = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                data: data.values,
+                backgroundColor: [
+                  "#4e73df",
+                  "#1cc88a",
+                  "#e74a3b",
+                  "#f6c23e",
+                  "#36b9cc",
+                  "#9966FF",
+                ],
+              },
+            ],
+          },
+          options: { responsive: true },
+        });
+      },
+    });
+  }
 </script>
 {% endblock %}

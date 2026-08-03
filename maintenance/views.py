@@ -7,7 +7,8 @@ from django.http import JsonResponse # type: ignore
 from master.models import Truck
 from maintenance.models import Record as MaintenanceRecord
 from maintenance.models import TruckDeviceModel
-from django.db.models import Count # type: ignore
+from django.db.models import Count, Max, OuterRef, Subquery # type: ignore
+from django.db.models.functions import TruncMonth # type: ignore
 
 from django.utils import timezone
 from datetime import datetime, timedelta, date # type: ignore
@@ -20,9 +21,61 @@ def dashboard(request):
     """
     View function to render the dashboard page.
     """
-    truck_count = Truck.objects.count() 
-    trucks = Truck.objects.all().order_by('-year')
-    context = { 'trucks': trucks, 'truck_count': truck_count, 'page': ['dashboard', 'dashboard'], 'title': 'Dashboard'}
+    latest_device = TruckDeviceModel.objects.filter(truck=OuterRef('pk')).order_by('-installed_at')
+    trucks = (
+        Truck.objects.select_related('brand')
+        .annotate(
+            services_count=Count('record', distinct=True),
+            last_service_date=Max('record__service_date'),
+            device_model=Subquery(latest_device.values('device_model')[:1]),
+        )
+        .order_by('-year')
+    )
+    truck_count = trucks.count()
+
+    status_counts = {
+        row['status']: row['count']
+        for row in Truck.objects.values('status').annotate(count=Count('id'))
+    }
+    active_count = status_counts.get('active', 0)
+    maintenance_count = status_counts.get('maintenance', 0)
+    inactive_count = status_counts.get('inactive', 0)
+
+    total_maintenance_count = MaintenanceRecord.objects.count()
+    avg_records_per_truck = round(total_maintenance_count / truck_count, 1) if truck_count else 0
+
+    serviced_truck_ids = MaintenanceRecord.objects.values_list('truck_id', flat=True).distinct()
+    never_serviced_trucks = Truck.objects.select_related('brand').exclude(id__in=serviced_truck_ids)
+    never_serviced_count = never_serviced_trucks.count()
+
+    top_trucks = (
+        MaintenanceRecord.objects
+        .values('truck__id', 'truck__license_plate', 'truck__model')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:5]
+    )
+
+    recent_records = (
+        MaintenanceRecord.objects
+        .select_related('truck', 'vendor')
+        .order_by('-service_date', '-id')[:8]
+    )
+
+    context = {
+        'trucks': trucks,
+        'truck_count': truck_count,
+        'active_count': active_count,
+        'maintenance_count': maintenance_count,
+        'inactive_count': inactive_count,
+        'total_maintenance_count': total_maintenance_count,
+        'avg_records_per_truck': avg_records_per_truck,
+        'never_serviced_trucks': never_serviced_trucks,
+        'never_serviced_count': never_serviced_count,
+        'top_trucks': top_trucks,
+        'recent_records': recent_records,
+        'page': ['dashboard', 'dashboard'],
+        'title': 'Dashboard',
+    }
     return render(request, 'maintenance/dashboard.html', context)
 
 
@@ -122,6 +175,42 @@ def statisticBrandChart(request):
         'values': [b['count'] for b in brands],
     }   
     return JsonResponse(data)
+
+def maintenanceTrendChart(request):
+    """
+    View function to return maintenance record volume for the last 6 months
+    that actually have data (relative to the data itself, not the server clock,
+    since historical data may not extend to the current month).
+    """
+    qs = (
+        MaintenanceRecord.objects
+        .exclude(service_date__year__lt=1900)
+        .annotate(month=TruncMonth('service_date'))
+        .values('month')
+        .annotate(count=Count('id'))
+        .order_by('-month')[:6]
+    )
+    rows = list(qs)[::-1]
+    data = {
+        'labels': [row['month'].strftime('%b %Y') for row in rows],
+        'values': [row['count'] for row in rows],
+    }
+    return JsonResponse(data)
+
+def maintenanceTypeChart(request):
+    """
+    View function to return the distribution of maintenance records by type.
+    """
+    type_labels = dict(MaintenanceRecord.MAINTENANCE_TYPE_CHOICES)
+    qs = MaintenanceRecord.objects.values('maintenance_type').annotate(count=Count('id')).order_by('-count')
+    labels = []
+    values = []
+    for row in qs:
+        key = row['maintenance_type']
+        label = type_labels.get(key, key.title()) if key else 'Tidak diketahui'
+        labels.append(label)
+        values.append(row['count'])
+    return JsonResponse({'labels': labels, 'values': values})
 
 def getMttfValue(request, id):
     """
@@ -230,10 +319,11 @@ def getInputDataML(request, id):
         "model_" + str(model).upper(): 1
     }
 
+    # get_prediction_from_api returns None if the prediction API is unreachable,
+    # blocked (e.g. by Cloudflare), or returns a non-JSON/error response.
     predicted = get_prediction_from_api(payload_data)
-    predicted_days = predicted['predicted_ttf_days']
-    predicted_km = predicted['predicted_ttf_km']
-
+    predicted_days = predicted.get('predicted_ttf_days') if predicted else None
+    predicted_km = predicted.get('predicted_ttf_km') if predicted else None
 
     # get next service date
     last_service_date = last_maintenance.service_date if last_maintenance else None
@@ -245,7 +335,11 @@ def getInputDataML(request, id):
         next_service_date = None
 
     # next service km
-    next_service_km = last_maintenance.odometer_reading + predicted_km if last_maintenance else None
+    next_service_km = (
+        last_maintenance.odometer_reading + predicted_km
+        if last_maintenance and predicted_km is not None
+        else None
+    )
     # print(next_service_km)
 
 
@@ -286,13 +380,13 @@ def getFuelFilterPressure(request, id):
     if not truckDevice:
         return JsonResponse({'error': 'Truck device not found'}, status=404)
     device_id = truckDevice.device_model
-    response = get_fuel_filter_pressure_from_api(device_id)
-    
-    # convert the response to list of integers
-    first_pressure_value = float(response['results'][0]['pressure_value'])
-    first_pressure_value = abs(first_pressure_value)
-    timestamp_values = response['results'][0]['timestamp']
-    
+    latest_reading = get_fuel_filter_pressure_from_api(device_id)
+    if not latest_reading:
+        return JsonResponse({'error': 'Fuel filter pressure data unavailable'}, status=502)
+
+    first_pressure_value = abs(float(latest_reading['pressure_value']))
+    timestamp_values = latest_reading['timestamp']
+
     # convert timestamp to readable format
     dt = datetime.fromisoformat(timestamp_values.replace('Z', '+00:00'))
     local_dt = timezone.localtime(dt)

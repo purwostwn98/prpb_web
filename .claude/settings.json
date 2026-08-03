@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sshpass -p '#1Industri01' ssh -p 38080 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@141.11.160.162 \"echo CONNECTED && hostname && whoami && cat /etc/os-release | head -3 && echo '--- disk ---' && df -h / && echo '--- docker ---' && docker --version 2>&1 && docker compose version 2>&1 && echo '--- existing dir? ---' && ls -la ~/sofipremas_api 2>&1 && echo '--- port 8087 in use? ---' && \\(ss -tlnp 2>/dev/null | grep ':8087 ' || echo 'port 8087 free'\\)\")",
+      "Bash(sshpass -p '#1Industri01' ssh -p 38080 -o StrictHostKeyChecking=no root@141.11.160.162 \"docker ps -a --format 'table {{.Names}}\\\\t{{.Image}}\\\\t{{.Status}}\\\\t{{.Ports}}'\")"
+    ]
+  }
+}

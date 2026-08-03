@@ -127,7 +127,7 @@ def get_prediction_from_api(payload_data):
     Returns:
         dict: The JSON response from the API, or None if an error occurs.
     """
-    url = "https://sofipremas2.ums.ac.id/predict"
+    url = "https://sofipremasapi.wandev.site/predict"
     headers = {
         'Content-Type': 'application/json'
     }
@@ -146,21 +146,44 @@ def get_prediction_from_api(payload_data):
     
 def get_fuel_filter_pressure_from_api(device_id):
     """
-    Sends device_id to the fuel filter pressure API and returns the result.
-    
+    Fetches the most recent fuel filter pressure reading for a device.
+
+    The upstream API has no pagination/limit support (query params like
+    limit/page_size are ignored) and returns a device's entire reading
+    history - tens of MB and growing - as a flat JSON array sorted
+    newest-first. To avoid downloading the whole history on every poll,
+    the response is streamed and reading stops as soon as the first
+    (i.e. latest) record has been decoded.
+
     Args:
         device_id (str): The device ID for which to retrieve fuel filter pressure data.
 
     Returns:
-        dict: The JSON response from the API, or None if an error occurs.
+        dict: The most recent reading, or None if unavailable or an error occurs.
     """
     url = "https://iot.ums-biroti.id/api/S01/?device_id=" + device_id
-
-    payload = {}
     headers = {
-    'Authorization': 'Token 9bc1840fce83fc3ae12a311870245eec86f2e4b7'
+        'Authorization': 'Token 9bc1840fce83fc3ae12a311870245eec86f2e4b7'
     }
-
-    response = requests.request("GET", url, headers=headers, data=payload)
-
-    return response.json()
+    decoder = json.JSONDecoder()
+    try:
+        with requests.get(url, headers=headers, stream=True, timeout=15) as response:
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            buf = ""
+            for chunk in response.iter_content(chunk_size=2048, decode_unicode=True):
+                if not chunk:
+                    continue
+                buf += chunk
+                stripped = buf.lstrip()
+                if not stripped.startswith('['):
+                    continue
+                try:
+                    record, _ = decoder.raw_decode(stripped, 1)
+                    return record
+                except json.JSONDecodeError:
+                    continue  # first record isn't complete yet, keep reading
+            return None  # stream ended before a full record was received (e.g. empty list)
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred while calling the fuel filter pressure API: {e}")
+        return None
