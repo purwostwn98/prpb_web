@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 
 # Create your views here.
 from .models import Shipping, ShippingTo
-from .forms import ShippingForm
+from .forms import ShippingForm, ShippingToForm, ShippingItemFormSet
 
 
 def shipping_list(request):
@@ -91,3 +92,85 @@ def delete_Shipping(request, pk):
     if request.method == 'POST':
         shipping.delete()
     return redirect('shipping_list')
+
+
+# Manajemen Pengiriman ke SPBU (ShippingTo)
+
+def shippingto_list(request):
+    """
+    View function to list all SPBU delivery destinations across all shipments.
+    """
+    destinations = (
+        ShippingTo.objects.select_related('shipping', 'spbu')
+        .prefetch_related('items')
+        .order_by('-order_date', '-id')
+    )
+    context = {
+        'destinations': destinations,
+        'total_count': destinations.count(),
+        'page': ['delivery', 'shippingto'],
+        'title': 'Daftar Pengiriman ke SPBU',
+    }
+    return render(request, 'delivery/shippingto_list.html', context)
+
+
+def create_ShippingTo(request):
+    """
+    View function to add a new SPBU delivery destination to a shipment.
+    If a `shipping` id is passed (e.g. from the shipping detail page), the
+    shipping field is pre-selected and the user is returned there after saving.
+    """
+    shipping_id = request.GET.get('shipping') or request.POST.get('shipping')
+    initial = {'shipping': shipping_id} if shipping_id else None
+    back_url = reverse('shipping_detail', args=[shipping_id]) if shipping_id else reverse('shippingto_list')
+
+    context = {
+        'page': ['delivery', 'shippingto'],
+        'title': 'Tambah Pengiriman ke SPBU',
+        'back_url': back_url,
+    }
+    form_shippingto = ShippingToForm(request.POST or None, initial=initial)
+    formset = ShippingItemFormSet(request.POST or None, instance=ShippingTo(), prefix='items')
+    if request.method == 'POST':
+        if form_shippingto.is_valid() and formset.is_valid():
+            destination = form_shippingto.save()
+            formset.instance = destination
+            formset.save()
+            if shipping_id:
+                return redirect('shipping_detail', pk=destination.shipping_id)
+            return redirect('shippingto_list')
+    context['form_shippingto'] = form_shippingto
+    context['formset'] = formset
+    return render(request, 'delivery/create_shippingto.html', context)
+
+
+def update_ShippingTo(request, pk):
+    """
+    View function to update an existing SPBU delivery destination and its products.
+    """
+    destination = get_object_or_404(ShippingTo, pk=pk)
+    form_shippingto = ShippingToForm(request.POST or None, instance=destination)
+    formset = ShippingItemFormSet(request.POST or None, instance=destination, prefix='items')
+    if request.method == 'POST':
+        if form_shippingto.is_valid() and formset.is_valid():
+            form_shippingto.save()
+            formset.save()
+            return redirect('shippingto_list')
+    context = {
+        'form_shippingto': form_shippingto,
+        'formset': formset,
+        'page_title': 'Update Pengiriman ke SPBU',
+        'page': ['delivery', 'shippingto'],
+        'title': 'Update Pengiriman ke SPBU',
+    }
+    return render(request, 'delivery/create_shippingto.html', context)
+
+
+def delete_ShippingTo(request, pk):
+    """
+    View function to delete an SPBU delivery destination.
+    """
+    destination = get_object_or_404(ShippingTo, pk=pk)
+    if request.method == 'POST':
+        destination.delete()
+    return redirect('shippingto_list')
