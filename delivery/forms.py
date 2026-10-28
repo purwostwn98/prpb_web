@@ -1,5 +1,6 @@
 from django import forms
 from .models import Shipping, ShippingTo, ShippingItem
+from .validators import shipping_assignment_errors
 
 
 class ShippingForm(forms.ModelForm):
@@ -36,6 +37,18 @@ class ShippingForm(forms.ModelForm):
             'driver': forms.Select(attrs={'class': 'form-select'}),
             'truck': forms.Select(attrs={'class': 'form-select'}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        errors = shipping_assignment_errors(
+            truck=cleaned_data.get('truck'),
+            driver=cleaned_data.get('driver'),
+            status=cleaned_data.get('status'),
+            exclude_pk=self.instance.pk,
+        )
+        for field, message in errors.items():
+            self.add_error(field, message)
+        return cleaned_data
 
 
 class ShippingToForm(forms.ModelForm):

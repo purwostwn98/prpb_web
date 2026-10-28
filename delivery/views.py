@@ -1,9 +1,21 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.contrib import messages
 
 # Create your views here.
 from .models import Shipping, ShippingTo
 from .forms import ShippingForm, ShippingToForm, ShippingItemFormSet
+from .validators import shipping_capacity_warning
+
+
+def warn_if_over_capacity(request, shipping):
+    """
+    Capacity is only a warning for now (truck capacity data is still being cleaned up),
+    so the save goes through and the user is notified.
+    """
+    warning = shipping_capacity_warning(shipping)
+    if warning:
+        messages.warning(request, warning)
 
 
 def shipping_list(request):
@@ -59,7 +71,11 @@ def create_Shipping(request):
     form_shipping = ShippingForm(request.POST or None)
     if request.method == 'POST':
         if form_shipping.is_valid():
-            form_shipping.save()
+            shipping = form_shipping.save()
+            warn_if_over_capacity(request, shipping)
+            if request.POST.get('next_action') == 'add_destination':
+                messages.success(request, f"Pengiriman {shipping.delivery_number} disimpan. Silakan tambahkan SPBU tujuan.")
+                return redirect(f"{reverse('create_ShippingTo')}?shipping={shipping.pk}")
             return redirect('shipping_list')
     context['form_shipping'] = form_shipping
     return render(request, 'delivery/create_shipping.html', context)
@@ -73,8 +89,8 @@ def update_Shipping(request, pk):
     form_shipping = ShippingForm(request.POST or None, instance=shipping)
     if request.method == 'POST':
         if form_shipping.is_valid():
-            form_shipping.save()
-        return redirect('shipping_list')
+            warn_if_over_capacity(request, form_shipping.save())
+            return redirect('shipping_list')
     context = {
         'form_shipping': form_shipping,
         'page_title': 'Update Pengiriman',
@@ -136,11 +152,26 @@ def create_ShippingTo(request):
             destination = form_shippingto.save()
             formset.instance = destination
             formset.save()
+            warn_if_over_capacity(request, destination.shipping)
+            if request.POST.get('next_action') == 'add_another':
+                count = destination.shipping.destinations.count()
+                messages.success(
+                    request,
+                    f"SPBU {destination.spbu.name or destination.spbu.code} ditambahkan ke pengiriman "
+                    f"{destination.shipping.delivery_number} ({count} tujuan). Silakan isi SPBU berikutnya.",
+                )
+                return redirect(f"{reverse('create_ShippingTo')}?shipping={destination.shipping_id}")
             if shipping_id:
                 return redirect('shipping_detail', pk=destination.shipping_id)
             return redirect('shippingto_list')
     context['form_shippingto'] = form_shippingto
     context['formset'] = formset
+    if shipping_id and str(shipping_id).isdigit():
+        context['existing_destinations'] = (
+            ShippingTo.objects.filter(shipping_id=shipping_id)
+            .select_related('spbu')
+            .prefetch_related('items')
+        )
     return render(request, 'delivery/create_shippingto.html', context)
 
 
@@ -153,8 +184,9 @@ def update_ShippingTo(request, pk):
     formset = ShippingItemFormSet(request.POST or None, instance=destination, prefix='items')
     if request.method == 'POST':
         if form_shippingto.is_valid() and formset.is_valid():
-            form_shippingto.save()
+            destination = form_shippingto.save()
             formset.save()
+            warn_if_over_capacity(request, destination.shipping)
             return redirect('shippingto_list')
     context = {
         'form_shippingto': form_shippingto,

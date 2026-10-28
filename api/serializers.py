@@ -5,6 +5,7 @@ from master.models import Merek, Truck
 from master.models import Driver
 from core.utils import *
 from delivery.models import Shipping, ShippingItem, ShippingTo
+from delivery.validators import shipping_assignment_errors
 from maintenance.models import Record as MaintenanceRecord, TruckDeviceModel  # Add this import at the module level
 from django.contrib.auth import get_user_model
 
@@ -103,6 +104,19 @@ class ShippingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shipping
         fields = ['id', 'driver', 'delivery_date', 'truck', 'model', 'license_plate', 'status', 'shippingto']  # Added license_plate
+
+    def validate(self, attrs):
+        # partial updates (PATCH) only send changed fields, so fall back to the stored values
+        instance = self.instance
+        errors = shipping_assignment_errors(
+            truck=attrs.get('truck', instance.truck if instance else None),
+            driver=attrs.get('driver', instance.driver if instance else None),
+            status=attrs.get('status', instance.status if instance else 'draft'),
+            exclude_pk=instance.pk if instance else None,
+        )
+        if errors:
+            raise serializers.ValidationError(errors)
+        return attrs
 
     
     

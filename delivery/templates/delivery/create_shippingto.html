@@ -37,6 +37,19 @@
         <h5 class="mb-0"><i class="ti ti-map-pin me-2"></i>Form Pengiriman ke SPBU</h5>
       </div>
       <div class="card-body">
+        {% if existing_destinations %}
+        <div class="alert alert-light border mb-4">
+          <div class="fw-semibold mb-2"><i class="ti ti-list-check me-1"></i>SPBU yang sudah ditambahkan ke pengiriman ini ({{ existing_destinations|length }})</div>
+          <ol class="mb-0 ps-3">
+            {% for dest in existing_destinations %}
+            <li>
+              {{ dest.spbu.code }} – {{ dest.spbu.name|default:"-" }}
+              <span class="text-muted">· OL {{ dest.ol_number }} · {{ dest.items.all|length }} produk</span>
+            </li>
+            {% endfor %}
+          </ol>
+        </div>
+        {% endif %}
         <form method="POST">
           {% csrf_token %}
           <div class="row">
@@ -139,6 +152,11 @@
 
           <div>
             <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i>Simpan</button>
+            {% if not form_shippingto.instance.pk %}
+            <button type="submit" name="next_action" value="add_another" class="btn btn-outline-primary">
+              <i class="ti ti-map-pins me-1"></i>Simpan &amp; Tambah SPBU Berikutnya
+            </button>
+            {% endif %}
             <a href="{{ back_url|default:'/delivery/list-shippingto' }}" class="btn btn-secondary"><i class="ti ti-x me-1"></i>Batal</a>
           </div>
         </form>
