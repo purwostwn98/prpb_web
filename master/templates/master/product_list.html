@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% block content %} {% load static %}
+{% extends 'base.html' %} {% block content %} {% load static fleet_format %}
 
 <div class="card bg-light-info shadow-none position-relative overflow-hidden">
   <div class="card-body px-4 py-3">
@@ -73,8 +73,8 @@
                 <tr>
                   <td>{{ product.name }}</td>
                   <td>{{ product.description }}</td>
-                  <td>{{ product.price }}</td>
-                  <td>{{ product.stock }}</td>
+                  <td class="text-end" data-order="{{ product.price }}">{{ product.price|rupiah }}</td>
+                  <td class="text-end" data-order="{{ product.stock }}">{{ product.stock|ribuan }}</td>
                   <td>
                     <a
                       href="{% url 'update_Product' product.id %}"
@@ -91,7 +91,7 @@
                       <button
                         type="submit"
                         class="btn btn-danger btn-sm"
-                        onclick="return confirm('Are you sure you want to delete this item?');"
+                        onclick="return confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.');"
                       >
                         <i class="ti ti-trash"></i>
                       </button>

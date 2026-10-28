@@ -1,0 +1,215 @@
+{% extends 'base.html' %} {% block content %} {% load static fleet_format %}
+
+<div class="card bg-light-info shadow-none position-relative overflow-hidden">
+  <div class="card-body px-4 py-3">
+    <div class="row align-items-center">
+      <div class="col-9">
+        <h4 class="fw-semibold mb-8"><i class="ti ti-alert-triangle me-2"></i>Early Warning Penggantian</h4>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+              <a class="text-muted text-decoration-none" href="{% url 'dashboard' %}">Home</a>
+            </li>
+            <li class="breadcrumb-item" aria-current="page">Early Warning</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="col-3">
+        <div class="text-center mb-n5">
+          <img src="{% static 'assets/images/breadcrumb/ChatBc.png' %}" alt="" class="img-fluid mb-n4" />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if not component %}
+<div class="alert alert-warning mt-3">
+  Belum ada jenis komponen yang memiliki interval penggantian. Atur interval di
+  <a href="{% url 'componenttype_list' %}">Master &gt; Jenis Komponen</a>.
+</div>
+{% else %}
+
+<form method="GET" class="d-flex align-items-center gap-2 mt-3 flex-wrap">
+  <label for="component-select" class="form-label mb-0"><i class="ti ti-components me-1"></i>Komponen:</label>
+  <select id="component-select" name="component" class="form-select w-auto" onchange="this.form.submit()">
+    {% for c in components %}
+    <option value="{{ c.code }}" {% if c.pk == component.pk %}selected{% endif %}>{{ c.name }}</option>
+    {% endfor %}
+  </select>
+  <span class="text-muted small">
+    Interval:
+    {% if component.interval_km %}{{ component.interval_km|ribuan }} KM{% endif %}
+    {% if component.interval_km and component.interval_days %} / {% endif %}
+    {% if component.interval_days %}{{ component.interval_days }} hari{% endif %}
+    · Peringatan:
+    {% if component.warning_km %}sisa &lt; {{ component.warning_km|ribuan }} KM{% endif %}
+    {% if component.warning_km and component.warning_days %} / {% endif %}
+    {% if component.warning_days %}sisa &lt; {{ component.warning_days }} hari{% endif %}
+    {% if not component.warning_km and not component.warning_days %}belum diatur{% endif %}
+  </span>
+</form>
+
+<div class="row mt-3">
+  {% for status, label, count in status_cards %}
+  <div class="col-6 col-md-3">
+    <a
+      href="?component={{ component.code }}{% if status_filter != status %}&status={{ status }}{% endif %}"
+      class="card text-decoration-none border-start border-4
+        {% if status == 'overdue' %}border-danger{% elif status == 'soon' %}border-warning{% elif status == 'ok' %}border-success{% else %}border-light-subtle{% endif %}
+        {% if status_filter == status %}shadow{% endif %}"
+    >
+      <div class="card-body py-3">
+        <h6 class="card-title text-muted mb-1">
+          {% if status == 'overdue' %}<i class="ti ti-alert-octagon me-1"></i>{% elif status == 'soon' %}<i class="ti ti-alert-triangle me-1"></i>{% elif status == 'ok' %}<i class="ti ti-circle-check me-1"></i>{% else %}<i class="ti ti-circle-dashed me-1"></i>{% endif %}
+          {{ label }}
+        </h6>
+        <h3 class="mb-0 {% if status == 'overdue' %}text-danger{% elif status == 'soon' %}text-warning{% elif status == 'ok' %}text-success{% else %}text-muted{% endif %}">{{ count }}</h3>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<section>
+  <div class="card mt-2">
+    <div class="card-header">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h5 class="mb-0"><i class="ti ti-list me-2"></i>Status {{ component.name }} per Truck</h5>
+        <form method="GET" class="d-flex gap-2">
+          <input type="hidden" name="component" value="{{ component.code }}" />
+          {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}" />{% endif %}
+          <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="Cari plat nomor" />
+          <button type="submit" class="btn btn-sm btn-outline-primary">Cari</button>
+          {% if search or status_filter %}
+          <a href="?component={{ component.code }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+    <div class="card-body">
+      <p class="text-muted small">
+        Sisa = jatuh tempo dikurangi KM / tanggal saat ini, mana yang lebih dulu tercapai.
+        <i class="ti ti-clock text-warning"></i> = KM truck belum diperbarui lebih dari 7 hari, sisa KM sebenarnya bisa lebih kecil.
+      </p>
+      <div class="table-responsive">
+        <table class="table border table-bordered align-middle">
+          <thead>
+            <tr>
+              <th>Truck</th>
+              <th>Ganti Terakhir</th>
+              <th class="text-end">KM Sekarang</th>
+              <th class="text-end">Sisa KM</th>
+              {% if component.interval_days %}<th class="text-end">Sisa Hari</th>{% endif %}
+              <th style="min-width: 140px">Pemakaian</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            {% with truck=row.truck %}
+            <tr class="{% if row.status == 'overdue' %}table-danger{% elif row.status == 'soon' %}table-warning{% endif %}">
+              <td>
+                <a href="{% url 'dashboard-truck' %}?id={{ truck.id }}" class="fw-semibold">{{ truck.license_plate }}</a>
+                <div class="text-muted small">{% if truck.brand.nama|lower in truck.model|lower %}{{ truck.model }}{% else %}{{ truck.brand.nama }} {{ truck.model }}{% endif %}</div>
+              </td>
+              <td>
+                {% if row.last_date %}
+                {{ row.last_date|date:"d M Y" }}
+                <div class="text-muted small">
+                  {% if row.last_odometer is not None %}{{ row.last_odometer|ribuan }} KM{% else %}KM tidak tercatat{% endif %}
+                  {% if row.last_record_id %} · <a href="{% url 'record_detail' row.last_record_id %}">record</a>{% endif %}
+                </div>
+                {% else %}
+                <span class="text-muted">Belum tercatat</span>
+                {% endif %}
+              </td>
+              <td class="text-end text-nowrap">
+                {{ truck.current_odometer|ribuan }}
+                <button
+                  type="button"
+                  class="btn btn-link btn-sm p-0 ms-1 align-baseline"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#odo-form-{{ truck.id }}"
+                  title="Perbarui KM truck"
+                  aria-label="Perbarui KM truck {{ truck.license_plate }}"
+                ><i class="ti ti-pencil"></i></button>
+                {% if row.odometer_stale %}
+                <i class="ti ti-clock text-warning" title="KM terakhir diperbarui {% if row.odometer_age_days is not None %}{{ row.odometer_age_days }} hari lalu{% else %}tidak diketahui{% endif %}"></i>
+                {% endif %}
+                <form
+                  method="POST"
+                  action="{% url 'update_odometer' truck.id %}"
+                  id="odo-form-{{ truck.id }}"
+                  class="collapse mt-1"
+                >
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                  <div class="input-group input-group-sm justify-content-end">
+                    <input
+                      type="number"
+                      name="odometer"
+                      min="{{ truck.current_odometer }}"
+                      class="form-control"
+                      style="max-width: 130px"
+                      placeholder="KM terbaru"
+                      aria-label="KM terbaru {{ truck.license_plate }}"
+                      required
+                    />
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                  </div>
+                </form>
+                <div class="text-muted small">
+                  {% if row.odometer_age_days is not None %}{% if row.odometer_age_days == 0 %}hari ini{% else %}{{ row.odometer_age_days }} hari lalu{% endif %}{% else %}tanggal tidak diketahui{% endif %}
+                  {% if truck.odometer_source %}· {{ truck.get_odometer_source_display }}{% endif %}
+                </div>
+              </td>
+              <td class="text-end text-nowrap fw-semibold {% if row.remaining_km is not None and row.remaining_km <= 0 %}text-danger{% endif %}">
+                {% if row.remaining_km is not None %}{{ row.remaining_km|ribuan }} KM{% else %}-{% endif %}
+              </td>
+              {% if component.interval_days %}
+              <td class="text-end {% if row.remaining_days is not None and row.remaining_days <= 0 %}text-danger fw-semibold{% endif %}">
+                {% if row.remaining_days is not None %}{{ row.remaining_days }} hari{% else %}-{% endif %}
+              </td>
+              {% endif %}
+              <td>
+                {% if row.usage_pct is not None %}
+                <div class="progress" style="height: 8px">
+                  <div
+                    class="progress-bar {% if row.status == 'overdue' %}bg-danger{% elif row.status == 'soon' %}bg-warning{% else %}bg-success{% endif %}"
+                    style="width: {% if row.usage_pct > 100 %}100{% elif row.usage_pct < 0 %}0{% else %}{{ row.usage_pct|stringformat:'.1f' }}{% endif %}%"
+                  ></div>
+                </div>
+                <small class="text-muted">{{ row.usage_pct|floatformat:0 }}%</small>
+                {% else %}-{% endif %}
+              </td>
+              <td class="text-nowrap">
+                <span class="badge {% if row.status == 'overdue' %}bg-danger{% elif row.status == 'soon' %}bg-warning{% elif row.status == 'ok' %}bg-success{% else %}bg-light text-muted border{% endif %}">
+                  {{ row.status_label }}
+                </span>
+              </td>
+              <td>
+                <a
+                  href="{% url 'create_Record' %}?truck={{ truck.id }}&component={{ component.code }}"
+                  class="text-nowrap btn btn-sm {% if row.status == 'no_data' %}btn-outline-secondary{% else %}btn-outline-primary{% endif %}"
+                  title="{% if row.status == 'no_data' %}Isi riwayat penggantian terakhir{% else %}Catat penggantian{% endif %}"
+                >
+                  <i class="ti ti-tool me-1"></i>{% if row.status == 'no_data' %}Isi riwayat{% else %}Catat ganti{% endif %}
+                </a>
+              </td>
+            </tr>
+            {% endwith %}
+            {% empty %}
+            <tr>
+              <td colspan="8" class="text-center text-muted">Tidak ada truck yang sesuai.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock content %}

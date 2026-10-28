@@ -22,16 +22,23 @@ class TruckAdmin(ModelAdmin):
         }),
     ]
 
+@admin.register(ComponentType)
+class ComponentTypeAdmin(ModelAdmin):
+    search_fields = ('code', 'name')
+    list_display = ('code', 'name', 'category', 'interval_km', 'interval_days', 'track_reliability', 'is_active')
+    list_filter = ('category', 'is_active')
+
+
 @admin.register(Part)
 class PartAdmin(ModelAdmin):
     search_fields = ('part_code', 'name')
-    list_display = ('part_code', 'name', 'jenis_part', 'quantity')
-    list_filter = ('jenis_part',)
+    list_display = ('part_code', 'name', 'component_type', 'quantity')
+    list_filter = ('component_type',)
     fieldsets = [
         ('Informasi Part', {
             'fields': (
                 ('part_code', 'name'),
-                ('jenis_part', 'unit_price', 'quantity'),
+                ('component_type', 'unit_price', 'quantity'),
                 ('description', 'vendor'),
             ),
             'description': 'Informasi dasar mengenai part.'

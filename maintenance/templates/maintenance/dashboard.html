@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% block content %} {% load static %}
+{% extends 'base.html' %} {% block content %} {% load static fleet_format %}
 <div class="row">
   <div class="col-12">
     <div class="d-flex align-items-center gap-4 mb-4">
@@ -23,19 +23,62 @@
   </div>
 </div>
 
+{% if warning_component %}
+<div class="row">
+  <div class="col-12">
+    <div class="card mx-2 border-start border-4 {% if warning_counts.overdue %}border-danger{% elif warning_counts.soon %}border-warning{% else %}border-success{% endif %}">
+      <div class="card-body py-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div>
+            <h5 class="card-title mb-1"><i class="ti ti-alert-triangle me-1"></i>Early Warning {{ warning_component.name }}</h5>
+            <span class="badge bg-danger me-1">{{ warning_counts.overdue }} Terlambat</span>
+            <span class="badge bg-warning me-1">{{ warning_counts.soon }} Segera</span>
+            <span class="badge bg-success me-1">{{ warning_counts.ok }} Aman</span>
+            <span class="badge bg-light text-muted border">{{ warning_counts.no_data }} Belum ada data</span>
+          </div>
+          <a href="{% url 'early_warning' %}?component={{ warning_component.code }}" class="btn btn-sm btn-outline-primary">
+            Lihat semua <i class="ti ti-arrow-right ms-1"></i>
+          </a>
+        </div>
+        {% if warning_urgent %}
+        <div class="table-responsive mt-3">
+          <table class="table table-sm mb-0 text-nowrap">
+            <thead>
+              <tr><th>Truck</th><th class="text-end">Sisa KM</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {% for row in warning_urgent %}
+              <tr>
+                <td><a href="{% url 'dashboard-truck' %}?id={{ row.truck.id }}">{{ row.truck.license_plate }}</a></td>
+                <td class="text-end {% if row.remaining_km is not None and row.remaining_km <= 0 %}text-danger fw-semibold{% endif %}">
+                  {% if row.remaining_km is not None %}{{ row.remaining_km|ribuan }} KM{% else %}-{% endif %}
+                </td>
+                <td><span class="badge {% if row.status == 'overdue' %}bg-danger{% else %}bg-warning{% endif %}">{{ row.status_label }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="row">
   <div class="col-md-4">
     <div class="card border-start border-4 border-primary mx-2">
       <div class="card-body">
-        <h5 class="card-title text-muted"><i class="ti ti-truck me-1"></i> Total Trucks</h5>
-        <h2 class="text-primary mb-0">{{ truck_count }}</h2>
+        <h5 class="card-title text-muted"><i class="ti ti-truck me-1"></i> Total Truck</h5>
+        <h2 class="text-primary mb-0">{{ truck_count|ribuan }}</h2>
       </div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="card border-start border-4 border-success mx-2">
       <div class="card-body">
-        <h5 class="card-title text-muted"><i class="ti ti-circle-check me-1"></i> Active Trucks</h5>
+        <h5 class="card-title text-muted"><i class="ti ti-circle-check me-1"></i> Truck Aktif</h5>
         <h2 class="text-success mb-0">{{ active_count }}</h2>
       </div>
     </div>
@@ -43,7 +86,7 @@
   <div class="col-md-4">
     <div class="card border-start border-4 border-warning mx-2">
       <div class="card-body">
-        <h5 class="card-title text-muted"><i class="ti ti-tools me-1"></i> In Maintenance</h5>
+        <h5 class="card-title text-muted"><i class="ti ti-tools me-1"></i> Dalam Maintenance</h5>
         <h2 class="text-warning mb-0">{{ maintenance_count }}</h2>
       </div>
     </div>
@@ -54,23 +97,23 @@
   <div class="col-md-4">
     <div class="card border-start border-4 border-info mx-2">
       <div class="card-body">
-        <h5 class="card-title text-muted"><i class="ti ti-history me-1"></i> Total Maintenance Records</h5>
-        <h2 class="text-info mb-0">{{ total_maintenance_count }}</h2>
+        <h5 class="card-title text-muted"><i class="ti ti-history me-1"></i> Total Record Maintenance</h5>
+        <h2 class="text-info mb-0">{{ total_maintenance_count|ribuan }}</h2>
       </div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="card border-start border-4 border-secondary mx-2">
       <div class="card-body">
-        <h5 class="card-title text-muted"><i class="ti ti-chart-bar me-1"></i> Avg Records / Truck</h5>
-        <h2 class="text-secondary mb-0">{{ avg_records_per_truck }}</h2>
+        <h5 class="card-title text-muted"><i class="ti ti-chart-bar me-1"></i> Rata-rata Record / Truck</h5>
+        <h2 class="text-secondary mb-0">{{ avg_records_per_truck|floatformat:1 }}</h2>
       </div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="card border-start border-4 border-danger mx-2">
       <div class="card-body">
-        <h5 class="card-title text-muted"><i class="ti ti-alert-triangle me-1"></i> Never Serviced</h5>
+        <h5 class="card-title text-muted"><i class="ti ti-alert-triangle me-1"></i> Belum Pernah Diservis</h5>
         <h2 class="text-danger mb-0">{{ never_serviced_count }}</h2>
       </div>
     </div>
@@ -81,7 +124,7 @@
 <div class="row mt-2">
   <div class="col-12">
     <div class="alert alert-warning mx-2 mb-0">
-      <strong><i class="ti ti-alert-triangle me-1"></i> {{ never_serviced_count }} truck(s) have no maintenance history:</strong>
+      <strong><i class="ti ti-alert-triangle me-1"></i> {{ never_serviced_count }} truck belum memiliki riwayat maintenance:</strong>
       {% for truck in never_serviced_trucks %}
         <span class="badge bg-warning text-dark">{{ truck.license_plate }}</span>
       {% endfor %}
@@ -94,7 +137,7 @@
   <div class="col-md-6">
     <div class="card mx-2">
       <div class="card-body">
-        <h5 class="card-title">Maintenance Activity Trend (Last 6 Months)</h5>
+        <h5 class="card-title">Tren Aktivitas Maintenance (6 Bulan Terakhir)</h5>
         <canvas id="trendChart"></canvas>
       </div>
     </div>
@@ -102,7 +145,7 @@
   <div class="col-md-3">
     <div class="card">
       <div class="card-body">
-        <h5 class="card-title">Maintenance Type</h5>
+        <h5 class="card-title">Jenis Maintenance</h5>
         <canvas id="typeChart"></canvas>
       </div>
     </div>
@@ -110,7 +153,7 @@
   <div class="col-md-3">
     <div class="card">
       <div class="card-body">
-        <h5 class="card-title">Brand Statistic</h5>
+        <h5 class="card-title">Komposisi Merek</h5>
         <canvas id="statisticBrand"></canvas>
       </div>
     </div>
@@ -121,7 +164,7 @@
   <div class="col-md-4">
     <div class="card mx-2">
       <div class="card-body">
-        <h5 class="card-title mb-3">Top 5 Most-Serviced Trucks</h5>
+        <h5 class="card-title mb-3">5 Truck Paling Sering Diservis</h5>
         <ul class="list-group list-group-flush">
           {% for t in top_trucks %}
           <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -129,7 +172,7 @@
             <span class="badge bg-primary rounded-pill">{{ t.count }}</span>
           </li>
           {% empty %}
-          <li class="list-group-item text-muted">No maintenance records yet.</li>
+          <li class="list-group-item text-muted">Belum ada record maintenance.</li>
           {% endfor %}
         </ul>
       </div>
@@ -138,15 +181,15 @@
   <div class="col-md-8">
     <div class="card">
       <div class="card-body">
-        <h5 class="card-title mb-3">Recent Maintenance Activity</h5>
+        <h5 class="card-title mb-3">Aktivitas Maintenance Terbaru</h5>
         <div class="table-responsive">
           <table class="table table-sm table-striped">
             <thead>
               <tr>
-                <th>Order Ref</th>
+                <th>No. Order</th>
                 <th>Truck</th>
-                <th>Type</th>
-                <th>Date</th>
+                <th>Jenis</th>
+                <th>Tanggal</th>
                 <th>Vendor</th>
                 <th>Status</th>
               </tr>
@@ -172,7 +215,7 @@
                 </td>
               </tr>
               {% empty %}
-              <tr><td colspan="6" class="text-muted">No maintenance records yet.</td></tr>
+              <tr><td colspan="6" class="text-muted">Belum ada record maintenance.</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -188,7 +231,7 @@
       <div class="card-body">
         <div class="card mt-4">
           <div class="card-body">
-            <h5 class="card-title mb-3">Truck List</h5>
+            <h5 class="card-title mb-3">Daftar Truck</h5>
             <div class="table-responsive">
               <table
                 class="table table-striped table-bordered"
@@ -196,16 +239,16 @@
               >
                 <thead>
                   <tr>
-                    <th>License Plate</th>
-                    <th>Brand</th>
+                    <th>Plat Nomor</th>
+                    <th>Merek</th>
                     <th>Model</th>
-                    <th>Year</th>
-                    <th>Odometer (km)</th>
-                    <th>Total Services</th>
-                    <th>Last Service</th>
-                    <th>Device Model</th>
+                    <th>Tahun</th>
+                    <th class="text-end">Odometer (km)</th>
+                    <th class="text-end">Jumlah Servis</th>
+                    <th>Servis Terakhir</th>
+                    <th>Perangkat IoT</th>
                     <th>Status</th>
-                    <th>Action</th>
+                    <th>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -215,17 +258,17 @@
                     <td>{{ truck.brand }}</td>
                     <td>{{ truck.model }}</td>
                     <td>{{ truck.year }}</td>
-                    <td>{{ truck.current_odometer }}</td>
-                    <td>{{ truck.services_count }}</td>
+                    <td class="text-end">{{ truck.current_odometer|ribuan }}</td>
+                    <td class="text-end">{{ truck.services_count|ribuan }}</td>
                     <td>{{ truck.last_service_date|date:"d M Y"|default:"-" }}</td>
                     <td>{{ truck.device_model|default:"-" }}</td>
                     <td>
                       {% if truck.status == 'active' %}
-                      <span class="badge bg-success">Active</span>
+                      <span class="badge bg-success">Aktif</span>
                       {% elif truck.status == 'maintenance' %}
-                      <span class="badge bg-warning">In Maintenance</span>
+                      <span class="badge bg-warning">Dalam Maintenance</span>
                       {% else %}
-                      <span class="badge bg-danger">Inactive</span>
+                      <span class="badge bg-danger">Tidak Aktif</span>
                       {% endif %}
                     </td>
                     <td>
@@ -325,7 +368,7 @@
             labels: data.labels,
             datasets: [
               {
-                label: "Maintenance Records",
+                label: "Record Maintenance",
                 data: data.values,
                 borderColor: "#4e73df",
                 backgroundColor: "rgba(78, 115, 223, 0.1)",

@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% block content %} {% load static %}
+{% extends 'base.html' %} {% block content %} {% load static fleet_format %}
 
 <div class="card bg-light-info shadow-none position-relative overflow-hidden">
   <div class="card-body px-4 py-3">
@@ -66,11 +66,11 @@
           </div>
           <div class="col-md-6">
             <table class="table table-sm mb-0">
-              <tr><td>Odometer</td><td>:</td><td>{{ record.odometer_reading|default:"-" }} KM</td></tr>
+              <tr><td>Odometer</td><td>:</td><td>{% if record.odometer_reading is not None %}{{ record.odometer_reading|ribuan }} km{% else %}-{% endif %}</td></tr>
               <tr><td>Vendor</td><td>:</td><td>{{ record.vendor.name|default:"-" }}</td></tr>
               <tr><td>Lokasi Service</td><td>:</td><td>{{ record.service_location|default:"-" }}</td></tr>
               <tr><td>Teknisi</td><td>:</td><td>{{ record.technician_name|default:"-" }}</td></tr>
-              <tr><td>Biaya</td><td>:</td><td>Rp {{ record.cost|default:0 }}</td></tr>
+              <tr><td>Biaya</td><td>:</td><td>{% if record.cost %}{{ record.cost|rupiah }}{% else %}-{% endif %}</td></tr>
             </table>
           </div>
         </div>
@@ -92,24 +92,35 @@
   <div class="col-md-6">
     <div class="card">
       <div class="card-body">
-        <h5 class="card-title mb-3"><i class="ti ti-settings me-2"></i>Part Digunakan</h5>
+        <h5 class="card-title mb-3"><i class="ti ti-settings me-2"></i>Komponen Dikerjakan</h5>
         <div class="table-responsive">
           <table class="table table-sm">
             <thead>
               <tr>
+                <th>Komponen</th>
+                <th>Tindakan</th>
                 <th>Part</th>
-                <th>Kuantitas</th>
+                <th class="text-end">Kuantitas</th>
+                <th class="text-end">Subtotal</th>
               </tr>
             </thead>
             <tbody>
-              {% for rp in parts %}
+              {% for item in items %}
               <tr>
-                <td>{{ rp.part.name }} ({{ rp.part.part_code }})</td>
-                <td>{{ rp.quantity }}</td>
+                <td>{{ item.component_type.name }}</td>
+                <td>{{ item.get_action_display }}</td>
+                <td>{% if item.part %}{{ item.part.name }} ({{ item.part.part_code }}){% else %}-{% endif %}</td>
+                <td class="text-end">{{ item.quantity|floatformat:"-2" }} {{ item.component_type.get_unit_display }}</td>
+                <td class="text-end">{% if item.unit_price is not None %}{{ item.subtotal|rupiah }}{% else %}-{% endif %}</td>
               </tr>
+              {% if item.notes %}
+              <tr>
+                <td colspan="5" class="text-muted small border-0 pt-0">{{ item.notes }}</td>
+              </tr>
+              {% endif %}
               {% empty %}
               <tr>
-                <td colspan="2" class="text-muted">Belum ada part yang tercatat.</td>
+                <td colspan="5" class="text-muted">Belum ada komponen yang tercatat.</td>
               </tr>
               {% endfor %}
             </tbody>

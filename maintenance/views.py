@@ -4,20 +4,28 @@ from itertools import count
 from django.shortcuts import render, redirect, get_object_or_404 # type: ignore
 from django.http import JsonResponse # type: ignore
 
-from master.models import Truck
+from master.models import ComponentType, Truck
 from maintenance.models import Record as MaintenanceRecord
-from maintenance.models import TruckDeviceModel, Log, RecordParts
-from maintenance.forms import RecordForm, TruckDeviceForm
+from maintenance.models import TruckDeviceModel, Log, RecordItem
+from maintenance.forms import RecordForm, RecordItemFormSet, TruckDeviceForm
 from django.db.models import Count, Max, OuterRef, Subquery, Q # type: ignore
 from django.db.models.functions import TruncMonth # type: ignore
 from django.core.paginator import Paginator # type: ignore
+from django.db import transaction # type: ignore
 
 from django.utils import timezone
 from datetime import datetime, timedelta, date # type: ignore
 import numpy as np # type: ignore
-from reliability.Fitters import Fit_Everything # type: ignore
 
 from core.utils import *
+from maintenance.analytics import (
+    NEWEST_FIRST, STATUS_LABELS, STATUS_ORDER, component_due_list, component_records, due_summary, fitted_mttf,
+    get_component, get_warning_component, next_service, reliability_summary, tracked_components, warning_components,
+)
+from master.odometer import odometer_error, record_odometer
+from django.contrib import messages # type: ignore
+from django.utils.http import url_has_allowed_host_and_scheme # type: ignore
+from django.views.decorators.http import require_POST # type: ignore
 
 def dashboard(request):
     """
@@ -63,7 +71,16 @@ def dashboard(request):
         .order_by('-service_date', '-id')[:8]
     )
 
+    # early warning summary for the default scheduled component (engine oil)
+    warning_component = get_warning_component()
+    warning_rows = component_due_list(warning_component) if warning_component else []
+    warning_counts = due_summary(warning_rows)
+    warning_urgent = [r for r in warning_rows if r['status'] in ('overdue', 'soon')][:5]
+
     context = {
+        'warning_component': warning_component,
+        'warning_counts': warning_counts,
+        'warning_urgent': warning_urgent,
         'trucks': trucks,
         'truck_count': truck_count,
         'active_count': active_count,
@@ -83,96 +100,37 @@ def dashboard(request):
 
 def dashboard_truck(request):
     """
-    View function to render the dashboard page.
+    View function to render the dashboard page of one truck.
+    Analytics are computed for one component type (?component=CODE, default fuel filter).
     """
     truck_id = request.GET.get('id')
     if not (truck_id and truck_id.isdigit()):
         truck_id = None
-    last_maintenance = get_last_maintenance_record(truck_id) if truck_id else None
     truck_data = Truck.objects.filter(id=truck_id).first() if truck_id else None
-    oee_value = 0
-    mttf = 0
-    persentase_mttf = 0
-    reliability = 0
-    maintenance_records = []
+    component = get_component(request.GET.get('component'))
+
+    summary = {'oee_value': 0, 'mttf': 0, 'persentase_mttf': 0, 'reliability': 0, 'jumlah_maintenance': 0}
+    last_maintenance = None
     if truck_data:
-        ## menghitung last performance
-        # dua odometer tertinggi yang berbeda (record dengan odometer sama dianggap satu servis)
-        top_odometers = list(
-            MaintenanceRecord.objects
-            .filter(truck=truck_data, odometer_reading__isnull=False)
-            .order_by('-odometer_reading')
-            .values_list('odometer_reading', flat=True)
-            .distinct()[:2]
-        )
-        max_record = top_odometers[0] if len(top_odometers) > 0 else 0
-        second_max_record = top_odometers[1] if len(top_odometers) > 1 else 0
-        ideal_odometer = 10000
-        availability = (max_record - second_max_record) / ideal_odometer * 100 if max_record and second_max_record else 0
-        performance = ((max_record - second_max_record) / ideal_odometer) * 100 if max_record else 0
-        quality = 100  # Assuming quality is always 100% for this example
-        oee_value = (availability * performance * quality) / 10000 if availability and performance else 0
-        if oee_value > 100:
-            oee_value = 99.99
-
-        ## menghitung mttf
-        pembagi = 0
-
-        ## Reliablity
-        jumlah_gagal = 0
-        pembagi_reliability = 0
-        maintenance_records = MaintenanceRecord.objects.filter(truck=truck_data, odometer_reading__gt=0).order_by('odometer_reading')
-        array_ttf = []
-        for i in range(len(maintenance_records) - 1):
-            current_record = maintenance_records[i]
-            next_record = maintenance_records[i + 1]
-            # print(current_record.odometer_reading)
-            # print(next_record.odometer_reading)
-            # print("=====")
-            if current_record.odometer_reading > 0 and next_record.odometer_reading > 0:
-                # MTTF
-                if (next_record.odometer_reading - current_record.odometer_reading) > 1000:
-                    ttf = next_record.odometer_reading - current_record.odometer_reading
-                    if ttf < 15000:
-                        ttf = ttf
-                    else:
-                        ttf = 15000
-                    array_ttf.append(next_record.odometer_reading - current_record.odometer_reading)
-                    mttf += (next_record.odometer_reading - current_record.odometer_reading)
-                    pembagi += 1
-                # Reliability
-                if (next_record.odometer_reading - current_record.odometer_reading) > 1000:
-                    pembagi_reliability += 1
-                    if (next_record.odometer_reading - current_record.odometer_reading) < 8000:
-                        jumlah_gagal += 1
-        # print(array_ttf)
-        # results = Fit_Everything(failures=array_ttf, print_results=True)
-        # best_dist = results.best_distribution
-        # print(f"MTTF for the best-fit distribution ({best_dist.name}): {best_dist.mean:.2f} hours")
-
-        ## Hitung MTTF
-        if pembagi > 0:
-            mttf = mttf / pembagi
-        else:
-            mttf = 0
-        # persentase mttf
-        persentase_mttf = mttf / ideal_odometer * 100 if mttf else 0
-
-        ## Hitung Reliability
-        reliability = (pembagi_reliability - jumlah_gagal) / pembagi_reliability * 100 if pembagi_reliability > 0 else 0
+        summary = reliability_summary(truck_data, component)
+        last_maintenance = component_records(truck_data.id, component).order_by(*NEWEST_FIRST).first()
 
     truck_device = TruckDeviceModel.objects.filter(truck=truck_data).order_by('-installed_at').first() if truck_data else None
+    warning_component = get_warning_component()
+    warning = None
+    if truck_data and warning_component:
+        warning = component_due_list(warning_component, Truck.objects.filter(pk=truck_data.pk))[0]
 
     context = {
         'page': ['dashboard', 'dashboard'], 'title': 'Dashboard Truck',
+        'warning_component': warning_component,
+        'warning': warning,
         'truck_data': truck_data,
         'device_model': truck_device.device_model if truck_device else None,
-        'oee_value': round(oee_value,2),
-        'mttf': round(mttf,2),
-        'jumlah_maintenance': len(maintenance_records),
-        'persentase_mttf': round(persentase_mttf,2),
-        'reliability': round(reliability,2),
+        'component': component,
+        'components': tracked_components(),
         'last_service_odometer': last_maintenance.odometer_reading if last_maintenance else 0,
+        **summary,
     }
     return render(request, 'maintenance/dashboard_truck.html', context)
 
@@ -225,163 +183,33 @@ def maintenanceTypeChart(request):
 
 def getMttfValue(request, id):
     """
-    View function to get the MTTF value for a specific truck.
+    View function to get the fitted MTTF value of one component for a specific truck.
     """
-    truck_id = id
-    truck_data = Truck.objects.filter(id=truck_id).first()
-    mttf = 0
-    array_ttf = []
-    labels = []
-    if truck_data:
-        maintenance_records = MaintenanceRecord.objects.filter(truck=truck_data, odometer_reading__gt=0).order_by('odometer_reading')
-        for i in range(len(maintenance_records) - 1):
-            current_record = maintenance_records[i]
-            next_record = maintenance_records[i + 1]
-            if current_record.odometer_reading > 0 and next_record.odometer_reading > 0:
-                if (next_record.odometer_reading - current_record.odometer_reading) > 1000:
-                    ttf = next_record.odometer_reading - current_record.odometer_reading
-                    array_ttf.append(ttf)  
-                    labels.append("Service " + str(i+1) + " - " + str(i+2))
-        #  Fit the distribution to the data
-        results = Fit_Everything(failures=array_ttf, print_results=True)
-        best_dist = results.best_distribution  
-        mttf = best_dist.mean if best_dist else 0
-        # print(f"MTTF for the best-fit distribution ({best_dist.name}): {best_dist.mean:.2f} hours")
-        distribution_name = best_dist.name if best_dist else "Unknown"
-
-        # Calculate reliability score for the best-fit distribution at a given odometer value (e.g., ideal_odometer)
-        ideal_odometer = 10000
-        reliability_score = best_dist.SF(ideal_odometer) * 100 if best_dist else 0
-        
-        # distribution data
-        distributin_data = {
-            'labels': labels,
-            'values': array_ttf,
-            'distribution_name': distribution_name,
-        }
-        # print(distributin_data)
-    return JsonResponse({'mttf': round(mttf,2), 'distribution_name': distribution_name, 'reliability_score': round(reliability_score,2), 'distribution_data': distributin_data})
+    component = get_component(request.GET.get('component'))
+    result = fitted_mttf(id, component)
+    distributin_data = {
+        'labels': result['labels'],
+        'values': result['values'],
+        'distribution_name': result['distribution_name'],
+    }
+    return JsonResponse({
+        'mttf': round(result['mttf'], 2),
+        'distribution_name': result['distribution_name'],
+        'reliability_score': round(result['reliability_score'], 2),
+        'distribution_data': distributin_data,
+    })
 
 def getInputDataML(request, id):
     """
-    View function to get the input data for a specific truck.
+    View function to get the replacement statistics and the predicted next service
+    of one component for a specific truck.
     """
-    truck_id = id
-    truck_data = Truck.objects.filter(id=truck_id).first()
-    last_maintenance = get_last_maintenance_record(truck_id)
-    # get truck age at service
-    if last_maintenance and truck_data and truck_data.year:
-        truck_manufacture_date = date(truck_data.year, 1, 1) # Assume the truck was made on Jan 1st of its year
-        # timedelta does not have a .years attribute. Calculate it from days.
-        truck_age_at_service = (last_maintenance.service_date - truck_manufacture_date).days / 365.25
-    else:
-        truck_age_at_service =  1
-    
-    # get month of service date
-    month_of_service = last_maintenance.service_date.month if last_maintenance else None
-    day_of_week = last_maintenance.service_date.weekday() if last_maintenance else None
-
-    # get last ttf km
-    last_ttf_km = 0
-    last_ttf_days = 0
-    if last_maintenance:
-         # get last second maintenance record
-         i = 1
-         second_maintenance_record = get_second_last_maintenance_record(truck_id, i)
-         if second_maintenance_record:
-            last_ttf_km = last_maintenance.odometer_reading - second_maintenance_record.odometer_reading
-            last_ttf_days = (last_maintenance.service_date - second_maintenance_record.service_date).days
-            while last_ttf_km < 1000:
-                i += 1
-                second_maintenance_record = get_second_last_maintenance_record(truck_id, i)
-                if not second_maintenance_record:
-                    break
-                last_ttf_km = last_maintenance.odometer_reading - second_maintenance_record.odometer_reading
-                last_ttf_days = (last_maintenance.service_date - second_maintenance_record.service_date).days
-    
-    # get rolling avg 3
-    rolling_avg_km_3 = get_rolling_avg_3(truck_id)['ttf_average']
-    rolling_avg_km_std = get_rolling_avg_3(truck_id)['ttf_std']
-    rolling_avg_days_3 = get_rolling_avg_3(truck_id)['days_average']
-    rolling_avg_days_std = get_rolling_avg_3(truck_id)['days_std']
-
-
-    # get comulative service
-    comulative_service = get_commulative_service(truck_id)
-
-    # get model_HINO TYPE
-    # get merk
-    # merek = truck_data.brand.nama if truck_data and truck_data.brand else None
-    # get model
-    model = truck_data.model if truck_data else None
-    model_name = 'model_' + str(model).upper()  
-
-    payload_data = {
-        "truck_age_at_service": int(truck_age_at_service),
-        "month_of_service": int(month_of_service),
-        "day_of_week": int(day_of_week),
-        "last_ttf_km": last_ttf_km,
-        "last_ttf_days": int(last_ttf_days),
-        "rolling_avg_km_3": rolling_avg_km_3,
-        "rolling_std_km_3": rolling_avg_km_std,
-        "rolling_avg_days_3": rolling_avg_days_3,
-        "rolling_std_days_3": rolling_avg_days_std,
-        "cumulative_replacements": int(comulative_service),
-        "cumulative_avg_km": get_commulative_km_average(truck_id),
-        "cumulative_avg_days": get_commulative_days_average(truck_id),
-        "model_" + str(model).upper(): 1
-    }
-
-    # get_prediction_from_api returns None if the prediction API is unreachable,
-    # blocked (e.g. by Cloudflare), or returns a non-JSON/error response.
-    predicted = get_prediction_from_api(payload_data)
-    predicted_days = predicted.get('predicted_ttf_days') if predicted else None
-    predicted_km = predicted.get('predicted_ttf_km') if predicted else None
-
-    # get next service date
-    last_service_date = last_maintenance.service_date if last_maintenance else None
-    # print(last_service_date)
-    # print("ongkeh")
-    if last_service_date:
-        next_service_date = last_service_date + timedelta(days=predicted_days if predicted_days is not None else 0)
-    else:
-        next_service_date = None
-
-    # next service km
-    next_service_km = (
-        last_maintenance.odometer_reading + predicted_km
-        if last_maintenance and predicted_km is not None
-        else None
-    )
-    # print(next_service_km)
-
-
-    # Django model instances are not directly JSON serializable.
-    # Create a dictionary with the data you need.
-    truck_data_dict = {
-        'id': truck_data.id,
-        'year': truck_data.year,
-    } if truck_data else None
-
-    context = {
-        'truck_data': truck_data_dict,
-        'truck_age_at_service': round(truck_age_at_service, 2),
-        'month_of_service': month_of_service,
-        'last_ttf_km': last_ttf_km,
-        'last_ttf_days' : last_ttf_days,
-        'rolling_avg_km_3': round(rolling_avg_km_3, 2),
-        'rolling_avg_days_3': round(rolling_avg_days_3, 2),
-        'count_commulative_service': comulative_service,
-        'commulative_km_average': get_commulative_km_average(truck_id),
-        'commulative_days_average': get_commulative_days_average(truck_id),
-        'truck_name':  "model_" + str(model).upper(),
-        'predicted_ttf_days': predicted_days if predicted_days else 0,
-        'predicted_ttf_km': predicted_km if predicted_km else 0,
-        'next_service_date': next_service_date.strftime('%Y-%m-%d') if next_service_date else None,
-        'next_service_km': next_service_km if next_service_km else 0,
-
-    }
-    return JsonResponse(context)
+    truck_data = get_object_or_404(Truck, id=id)
+    component = get_component(request.GET.get('component'))
+    result = next_service(truck_data, component, default_truck_age=1)
+    if result is None:
+        return JsonResponse({'error': 'Belum ada riwayat penggantian komponen ini.'}, status=404)
+    return JsonResponse(result)
 
 def getFuelFilterPressure(request, id):
     """
@@ -413,14 +241,14 @@ def getFuelFilterPressure(request, id):
 
 def getMaintenanceHistory(request, id):
     """
-    View function to get the maintenance history for a specific truck.
+    View function to get the maintenance history of one component for a specific truck.
     """
-    truck_id = id
+    component = get_component(request.GET.get('component'))
     maintenance_records = (
-        MaintenanceRecord.objects
-        .filter(truck__id=truck_id)
+        component_records(id, component)
         .select_related('vendor')
-        .order_by('-service_date')[:8]
+        .prefetch_related('items__component_type')
+        .order_by(*NEWEST_FIRST)[:8]
     )
     status_row_class = {
         'done': 'table-success',
@@ -436,12 +264,68 @@ def getMaintenanceHistory(request, id):
             'date': record.service_date.strftime('%Y-%m-%d'),
             'odometer': record.odometer_reading,
             'service': record.get_maintenance_type_display() or 'Tidak diketahui',
+            'components': ', '.join(
+                f"{item.get_action_display()} {item.component_type.name}" for item in record.items.all()
+            ),
             'vendor': record.vendor.name if record.vendor else '-',
             'cost': float(record.cost) if record.cost else 0,
             'status': record.get_status_display(),
             'row_class': status_row_class.get(record.status, 'table-warning'),
         })
     return JsonResponse({'history': history})
+
+# Early warning penggantian komponen (mis. ganti oli)
+
+def early_warning(request):
+    """
+    Trucks that are (almost) due for replacing a component, with the remaining KM/days.
+    """
+    component = get_warning_component(request.GET.get('component'))
+    rows = component_due_list(component) if component else []
+    counts = due_summary(rows)
+
+    status_filter = request.GET.get('status')
+    search = request.GET.get('q', '').strip()
+    if status_filter in STATUS_LABELS:
+        rows = [r for r in rows if r['status'] == status_filter]
+    if search:
+        rows = [r for r in rows if search.lower() in r['truck'].license_plate.lower()]
+
+    context = {
+        'component': component,
+        'components': warning_components(),
+        'rows': rows,
+        'counts': counts,
+        'status_cards': [(status, STATUS_LABELS[status], counts.get(status, 0)) for status in STATUS_ORDER],
+        'status_filter': status_filter,
+        'search': search,
+        'page': ['maintenance', 'early_warning'],
+        'title': 'Early Warning Penggantian',
+    }
+    return render(request, 'maintenance/early_warning.html', context)
+
+
+@require_POST
+def update_odometer(request, truck_id):
+    """
+    Manual odometer input by an admin (e.g. from the early warning page).
+    """
+    truck = get_object_or_404(Truck, pk=truck_id)
+    raw = request.POST.get('odometer', '').replace('.', '').replace(',', '').strip()
+    if not raw.isdigit():
+        messages.error(request, 'KM harus berupa angka.')
+    else:
+        reading = int(raw)
+        error = odometer_error(truck, reading)
+        if error:
+            messages.error(request, error)
+        else:
+            record_odometer(truck, reading, 'manual')
+            messages.success(request, f"KM truck {truck.license_plate} diperbarui menjadi {reading:,}.".replace(',', '.'))
+    next_url = request.POST.get('next')
+    if not next_url or not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = 'early_warning'
+    return redirect(next_url)
 
 
 # Manajemen Maintenance Truck (Record)
@@ -491,14 +375,14 @@ def record_list(request):
 
 def record_detail(request, pk):
     """
-    View function to show the detail of a maintenance record: info, parts used, and log history.
+    View function to show the detail of a maintenance record: info, components worked on, and log history.
     """
     record = get_object_or_404(MaintenanceRecord.objects.select_related('truck', 'vendor'), pk=pk)
-    parts = RecordParts.objects.filter(record=record).select_related('part')
+    items = RecordItem.objects.filter(record=record).select_related('component_type', 'part')
     logs = Log.objects.filter(record=record).order_by('-log_date')
     context = {
         'record': record,
-        'parts': parts,
+        'items': items,
         'logs': logs,
         'page': ['maintenance', 'record'],
         'title': 'Detail Maintenance',
@@ -508,53 +392,76 @@ def record_detail(request, pk):
 
 def create_Record(request):
     """
-    View function to create a new maintenance record.
+    View function to create a new maintenance record together with the components worked on.
     """
     context = {'page': ['maintenance', 'record'], 'title': 'Tambah Maintenance'}
-    form_record = RecordForm(request.POST or None)
+    record_initial, item_initial = {}, []
+    if request.method == 'GET':
+        # prefilled from the early warning page: ?truck=ID&component=CODE
+        truck = Truck.objects.filter(pk=request.GET.get('truck')).first() if request.GET.get('truck', '').isdigit() else None
+        if truck:
+            record_initial = {
+                'truck': truck, 'maintenance_type': 'preventive',
+                'odometer_reading': truck.current_odometer, 'status': 'done',
+            }
+        component = ComponentType.objects.filter(code=request.GET.get('component')).first()
+        if component:
+            item_initial = [{'component_type': component, 'action': RecordItem.ACTION_REPLACE}]
+    form_record = RecordForm(request.POST or None, initial=record_initial)
+    formset = RecordItemFormSet(
+        request.POST or None, instance=MaintenanceRecord(), prefix='items', initial=item_initial,
+    )
     if request.method == 'POST':
-        if form_record.is_valid():
-            record = form_record.save(commit=False)
-            record.input_by = request.user.id if request.user.is_authenticated else None
-            record.save()
-            Log.objects.create(
-                record=record,
-                log_type=record.status,
-                log_description=f"Record {record.order_reference} dibuat dengan status {record.get_status_display()}.",
-                updated_by=request.user.id if request.user.is_authenticated else 0,
-            )
+        if form_record.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                record = form_record.save(commit=False)
+                record.input_by = request.user.id if request.user.is_authenticated else None
+                record.save()
+                formset.instance = record
+                formset.save()
+                Log.objects.create(
+                    record=record,
+                    log_type=record.status,
+                    log_description=f"Record {record.order_reference} dibuat dengan status {record.get_status_display()}.",
+                    updated_by=request.user.id if request.user.is_authenticated else 0,
+                )
             return redirect('record_list')
     context['form_record'] = form_record
+    context['formset'] = formset
     return render(request, 'maintenance/create_record.html', context)
 
 
 def update_Record(request, pk):
     """
-    View function to update an existing maintenance record.
+    View function to update an existing maintenance record and its components.
     """
     record = get_object_or_404(MaintenanceRecord, pk=pk)
     old_status = record.status
     form_record = RecordForm(request.POST or None, instance=record)
+    formset = RecordItemFormSet(request.POST or None, instance=record, prefix='items')
     if request.method == 'POST':
-        if form_record.is_valid():
-            updated_record = form_record.save()
-            if old_status != updated_record.status:
-                Log.objects.create(
-                    record=updated_record,
-                    log_type=updated_record.status,
-                    log_description=f"Status berubah dari {old_status} menjadi {updated_record.get_status_display()}.",
-                    updated_by=request.user.id if request.user.is_authenticated else 0,
-                )
-            else:
-                Log.objects.create(
-                    record=updated_record,
-                    log_type=updated_record.status,
-                    log_description=f"Record {updated_record.order_reference} diperbarui.",
-                    updated_by=request.user.id if request.user.is_authenticated else 0,
-                )
-        return redirect('record_list')
+        if form_record.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                updated_record = form_record.save()
+                formset.save()
+                if old_status != updated_record.status:
+                    Log.objects.create(
+                        record=updated_record,
+                        log_type=updated_record.status,
+                        log_description=f"Status berubah dari {old_status} menjadi {updated_record.get_status_display()}.",
+                        updated_by=request.user.id if request.user.is_authenticated else 0,
+                    )
+                else:
+                    Log.objects.create(
+                        record=updated_record,
+                        log_type=updated_record.status,
+                        log_description=f"Record {updated_record.order_reference} diperbarui.",
+                        updated_by=request.user.id if request.user.is_authenticated else 0,
+                    )
+            return redirect('record_list')
     context = {
         'form_record': form_record,
+        'formset': formset,
         'page_title': 'Update Maintenance',
         'page': ['maintenance', 'record'],
         'title': 'Update Maintenance',

@@ -17,8 +17,16 @@ class Shipping(models.Model):
     notes = models.TextField(blank=True, null=True)
     driver = models.ForeignKey('master.Driver', on_delete=models.SET_NULL, null=True, blank=True)
     truck = models.ForeignKey('master.Truck', on_delete=models.SET_NULL, null=True, blank=True)
+    odometer_end = models.PositiveIntegerField(null=True, blank=True, help_text='KM truck saat pengiriman selesai (diisi driver)')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # the driver reports the odometer when the delivery is finished
+        if self.status == 'completed' and self.odometer_end and self.truck_id:
+            from master.odometer import record_odometer
+            record_odometer(self.truck, self.odometer_end, 'shipping', self.delivery_date)
 
     def __str__(self):
         return f"Delivery {self.delivery_number} - {self.truck.license_plate} - {self.status}"

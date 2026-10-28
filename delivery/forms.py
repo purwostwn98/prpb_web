@@ -1,5 +1,6 @@
 from django import forms
 from .models import Shipping, ShippingTo, ShippingItem
+from master.odometer import odometer_error
 from .validators import shipping_assignment_errors
 
 
@@ -16,6 +17,11 @@ class ShippingForm(forms.ModelForm):
             'notes': 'Catatan',
             'driver': 'Driver',
             'truck': 'Truck',
+            'odometer_end': 'KM Akhir (saat selesai)',
+        }
+
+        help_texts = {
+            'odometer_end': 'Diisi driver saat pengiriman selesai; dipakai untuk memperbarui KM truck.',
         }
 
         error_messages = {
@@ -34,12 +40,17 @@ class ShippingForm(forms.ModelForm):
             'delivery_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Catatan tambahan (opsional)'}),
-            'driver': forms.Select(attrs={'class': 'form-select'}),
-            'truck': forms.Select(attrs={'class': 'form-select'}),
+            'driver': forms.Select(attrs={'class': 'form-select select2', 'data-placeholder': 'Cari...'}),
+            'truck': forms.Select(attrs={'class': 'form-select select2', 'data-placeholder': 'Cari...'}),
+            'odometer_end': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'KM odometer saat selesai'}),
         }
 
     def clean(self):
         cleaned_data = super().clean()
+        if 'odometer_end' in self.changed_data:
+            error = odometer_error(cleaned_data.get('truck'), cleaned_data.get('odometer_end'))
+            if error:
+                self.add_error('odometer_end', error)
         errors = shipping_assignment_errors(
             truck=cleaned_data.get('truck'),
             driver=cleaned_data.get('driver'),

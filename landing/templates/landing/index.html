@@ -1,9 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Login - Truck Management{% endblock %}</title>
+    <title>{% block title %}Masuk · Sofipremas{% endblock %}</title>
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
       rel="stylesheet"
@@ -127,20 +128,16 @@
     <div class="login-container">
       <div class="login-card">
         <div class="login-header">
-          <img
-            src="https://news.ums.ac.id/id/wp-content/uploads/sites/2/2022/12/Resmi_Logo_UMS_Color.png"
-            alt="Logo"
-            style="max-height: 80px; margin-bottom: 15px"
-          />
-          <img
-            src="https://talenta-lpdp.kemenkeu.go.id/media/logos/logo-lpdp.png"
-            alt="Logo"
-            style="max-height: 80px; margin-bottom: 15px"
-          />
-
-          {% comment %} <i class="fas fa-truck"></i> {% endcomment %}
-          <h3>Welcome</h3>
-          <p>Solar Filter Predictive and Preventive Maintenance System</p>
+          <!-- the combined logo has dark text, so it sits on a white chip over the dark header -->
+          <div style="display: inline-block; background: #fff; border-radius: 12px; padding: 8px 16px; margin-bottom: 15px">
+            <img
+              src="{% static 'assets/images/logos/dark-logo.png' %}"
+              alt="Universitas Muhammadiyah Surakarta & LPDP"
+              style="max-height: 64px"
+            />
+          </div>
+          <h3>Sofipremas</h3>
+          <p>Solar Filter Preventif &amp; Prediktif Maintenance</p>
         </div>
         <div class="login-body">
           <!-- Django Messages -->
@@ -197,7 +194,7 @@
                   type="password"
                   name="password"
                   class="form-control {% if form.password.errors %}is-invalid{% endif %}"
-                  placeholder="Password"
+                  placeholder="Kata sandi"
                   required
                 />
               </div>
@@ -226,7 +223,7 @@
                 name="remember_me"
               />
               <label class="form-check-label" for="rememberMe">
-                Remember me
+                Ingat saya
               </label>
             </div>
 
@@ -236,13 +233,13 @@
             {% endif %}
 
             <button type="submit" class="btn btn-primary btn-login">
-              <i class="fas fa-sign-in-alt me-2"></i>Login
+              <i class="fas fa-sign-in-alt me-2"></i>Masuk
             </button>
 
             <div class="text-center mt-4">
-              <a href="#" class="text-decoration-none" style="color: #6c757d">
-                <i class="fas fa-question-circle me-1"></i>Forgot your password?
-              </a>
+              <span style="color: #6c757d">
+                <i class="fas fa-question-circle me-1"></i>Lupa kata sandi? Hubungi administrator.
+              </span>
             </div>
           </form>
         </div>

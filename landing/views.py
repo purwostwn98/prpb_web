@@ -20,7 +20,9 @@ def index(request):
         if user is not None:
             # Login the user
             login(request, user)
-            messages.success(request, 'Login successful!')
+            if not request.POST.get('remember_me'):
+                request.session.set_expiry(0)  # session ends when the browser closes
+            messages.success(request, f'Selamat datang, {user.get_full_name() or user.username}!')
             
             # Redirect to next page or dashboard
             next_page = request.GET.get('next')
@@ -30,12 +32,12 @@ def index(request):
                 next_page = 'dashboard'
             return redirect(next_page)
         else:
-            messages.error(request, 'Invalid username or password.')
+            messages.error(request, 'Username atau kata sandi salah.')
     return render(request, 'landing/index.html')
 
 def logout_view(request):
     logout(request)
-    messages.success(request, 'Logout successful!')
+    messages.success(request, 'Anda telah keluar.')
     return redirect('index')
 
 # class DashboardView(TemplateView):

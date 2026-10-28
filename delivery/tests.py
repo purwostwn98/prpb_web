@@ -157,3 +157,22 @@ class ShippingAssignmentValidationTests(TestCase):
         self.assertIn('truck', response.json())
         other.refresh_from_db()
         self.assertEqual(other.status, 'pending')
+
+    def test_completed_shipping_updates_truck_odometer(self):
+        shipping = self.make_shipping('DO-1', 'on_progress', self.truck, self.driver)
+        client = APIClient()
+        client.force_authenticate(self.admin)
+        response = client.patch(f'/api/shipping/{shipping.pk}/', {'status': 'completed', 'odometer_end': 25000}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.truck.refresh_from_db()
+        self.assertEqual((self.truck.current_odometer, self.truck.odometer_source), (25000, 'shipping'))
+
+    def test_odometer_end_lower_than_truck_is_rejected(self):
+        Truck.objects.filter(pk=self.truck.pk).update(current_odometer=30000)
+        shipping = self.make_shipping('DO-1', 'on_progress', self.truck, self.driver)
+        client = APIClient()
+        client.force_authenticate(self.admin)
+        response = client.patch(f'/api/shipping/{shipping.pk}/', {'status': 'completed', 'odometer_end': 25000}, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('odometer_end', response.json())
+        self.assertFalse(self.form(odometer_end=25000).is_valid())

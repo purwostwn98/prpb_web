@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% block content %} {% load static %}
+{% extends 'base.html' %} {% block content %} {% load static fleet_format %}
 
 <div class="card bg-light-info shadow-none position-relative overflow-hidden">
   <div class="card-body px-4 py-3">
@@ -65,6 +65,7 @@
             <table class="table table-sm mb-0">
               <tr><td>Tanggal Order</td><td>:</td><td>{{ shipping.order_date|date:"d M Y" }}</td></tr>
               <tr><td>Tanggal Kirim</td><td>:</td><td>{{ shipping.delivery_date|date:"d M Y"|default:"-" }}</td></tr>
+              <tr><td>KM Akhir</td><td>:</td><td>{% if shipping.odometer_end %}{{ shipping.odometer_end|ribuan }} km{% else %}<span class="text-muted">Belum diisi driver</span>{% endif %}</td></tr>
             </table>
           </div>
         </div>
@@ -98,7 +99,7 @@
           <div class="card-body py-3">
             <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
               <strong>{{ dest.spbu.name|default:dest.spbu.code }}</strong>
-              <span class="text-muted small">OL: {{ dest.ol_number }} &middot; {{ dest.estimated_distance_km }} km</span>
+              <span class="text-muted small">OL: {{ dest.ol_number }} &middot; {{ dest.estimated_distance_km|floatformat:"-1" }} km</span>
             </div>
             <p class="text-muted small mb-2">{{ dest.spbu.address|default:"-" }}</p>
             <div class="table-responsive">
@@ -106,16 +107,16 @@
                 <thead>
                   <tr>
                     <th>Produk</th>
-                    <th>Kuantitas</th>
-                    <th>Harga Satuan</th>
+                    <th class="text-end">Kuantitas</th>
+                    <th class="text-end">Harga Satuan</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for item in dest.items.all %}
                   <tr>
                     <td>{{ item.product.name }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>Rp {{ item.unit_price }}</td>
+                    <td class="text-end">{{ item.quantity|ribuan }} L</td>
+                    <td class="text-end">{{ item.unit_price|rupiah }}</td>
                   </tr>
                   {% empty %}
                   <tr><td colspan="3" class="text-muted">Belum ada produk.</td></tr>

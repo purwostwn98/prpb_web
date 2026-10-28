@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" dir="ltr" data-bs-theme="light" data-color-theme="Blue_Theme" data-layout="vertical">
+<html lang="id" dir="ltr" data-bs-theme="light" data-color-theme="Blue_Theme" data-layout="vertical">
 
 <head>
   <!-- Required meta tags -->
@@ -14,7 +14,7 @@
   <!-- Core Css -->
   <link rel="stylesheet" href="{% static 'assets/css/styles.css' %}" />
 
-  <title>{% block title %}Solar Filter Maintenance{% endblock %}</title>
+  <title>{% block title %}{% with page_title=title|default:default_page_title %}{% if page_title %}{{ page_title }} · {% endif %}{% endwith %}Sofipremas{% endblock %}</title>
 </head>
 
 <body>
@@ -30,7 +30,7 @@
         <!-- Start Vertical Layout Sidebar -->
         <!-- ---------------------------------- -->
         <div class="brand-logo d-flex align-items-center justify-content-between">
-          <a href="{% static 'main/index.html' %}" class="text-nowrap logo-img mt-2">
+          <a href="{% url 'dashboard' %}" class="text-nowrap logo-img mt-2">
             <img src="{% static 'assets/images/logos/dark-logo.png' %}" width="180" class="dark-logo" alt="Logo-Dark" />
             <img src="{% static 'assets/images/logos/light-logo.svg' %}" class="light-logo" alt="Logo-light" />
           </a>
@@ -45,7 +45,7 @@
             <!-- Home -->
             <li class="nav-small-cap">
               <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-              <span class="hide-menu" id="get-url">Admin Maintenance</span>
+              <span class="hide-menu" id="get-url" title="Solar Filter Preventif &amp; Prediktif Maintenance">Sofipremas</span>
             </li>
             <!-- Dashboard -->
             <li class="sidebar-item">
@@ -66,6 +66,14 @@
                 <span class="hide-menu">Maintenance</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
+                <li class="sidebar-item">
+                  <a href="/maintenance/early-warning" class="sidebar-link {% if page|length > 1 and page.1 == "early_warning" %}active{% endif %}">
+                    <div class="round-16 d-flex align-items-center justify-content-center">
+                      <i class="ti ti-circle"></i>
+                    </div>
+                    <span class="hide-menu">Early Warning</span>
+                  </a>
+                </li>
                 <li class="sidebar-item">
                   <a href="/maintenance/list-record" class="sidebar-link {% if page|length > 1 and page.1 == "record" %}active{% endif %}">
                     <div class="round-16 d-flex align-items-center justify-content-center">
@@ -150,6 +158,14 @@
                       <i class="ti ti-circle"></i>
                     </div>
                     <span class="hide-menu">Vendor</span>
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a href="/master/list-componenttype" class="sidebar-link {% if page|length > 1 and page.1 == "componenttype" %}active{% endif %}">
+                    <div class="round-16 d-flex align-items-center justify-content-center">
+                      <i class="ti ti-circle"></i>
+                    </div>
+                    <span class="hide-menu">Jenis Komponen</span>
                   </a>
                 </li>
                 <li class="sidebar-item">
@@ -259,7 +275,7 @@
             </ul>
 
             <div class="d-block d-lg-none py-4">
-              <a href="../main/index.html" class="text-nowrap logo-img mt-2">
+              <a href="{% url 'dashboard' %}" class="text-nowrap logo-img mt-2">
                 <img src="{% static 'assets/images/logos/dark-logo.png' %}" width="180" class="dark-logo" alt="Logo-Dark" />
                 <img src="{% static 'assets/images/logos/light-logo.svg' %}" class="light-logo" alt="Logo-light" />
               </a>
@@ -1145,6 +1161,25 @@
   <script src="{% static 'assets/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
   <script src="{% static 'assets/js/dashboards/dashboard5.js' %}"></script>
   {% block js_block %} {% endblock js_block %}
+  <script>
+    // Indonesian labels for every DataTable; runs before the pages' $(document).ready() handlers
+    if (window.jQuery && $.fn.dataTable) {
+      $.extend(true, $.fn.dataTable.defaults, {
+        language: {
+          thousands: ".",
+          decimal: ",",
+          search: "Cari:",
+          lengthMenu: "Tampilkan _MENU_ data",
+          info: "Menampilkan _START_–_END_ dari _TOTAL_ data",
+          infoEmpty: "Tidak ada data",
+          infoFiltered: "(disaring dari _MAX_ data)",
+          zeroRecords: "Tidak ada data yang cocok",
+          emptyTable: "Belum ada data",
+          paginate: { first: "Pertama", last: "Terakhir", next: "Berikutnya", previous: "Sebelumnya" },
+        },
+      });
+    }
+  </script>
 </body>
 
 </html>

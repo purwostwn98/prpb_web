@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% block content %} {% load static %}
+{% extends 'base.html' %} {% block content %} {% load static fleet_format %}
 
 <div class="card bg-light-info shadow-none position-relative overflow-hidden">
   <div class="card-body px-4 py-3">
@@ -65,8 +65,8 @@
                   <th>Merek</th>
                   <th>Model</th>
                   <th>Tahun</th>
-                  <th>Kapasitas</th>
-                  <th>Odometer Saat Ini</th>
+                  <th class="text-end">Kapasitas</th>
+                  <th class="text-end">Odometer Saat Ini</th>
                   <th>Status Kendaraan</th>
                   <th>Tanggal Akuisisi</th>
                   <th>Nomor Mesin</th>
@@ -81,8 +81,8 @@
                   <td>{{ truck.brand }}</td>
                   <td>{{ truck.model }}</td>
                   <td>{{ truck.year }}</td>
-                  <td>{{ truck.capacity }}</td>
-                  <td>{{ truck.current_odometer }}</td>
+                  <td class="text-end" data-order="{{ truck.capacity }}">{{ truck.capacity|ribuan }} L</td>
+                  <td class="text-end" data-order="{{ truck.current_odometer }}">{{ truck.current_odometer|ribuan }} km</td>
                   <td>
                     {% if truck.status == 'active' %}
                     <span class="badge bg-success">Active</span>
@@ -92,7 +92,7 @@
                     <span class="badge bg-danger">Inactive</span>
                     {% endif %}
                   </td>
-                  <td>{{ truck.acquisition_date }}</td>
+                  <td data-order="{{ truck.acquisition_date|date:'Y-m-d' }}">{% if truck.acquisition_date and truck.acquisition_date.year > 1900 %}{{ truck.acquisition_date|date:"d M Y" }}{% else %}-{% endif %}</td>
                   <td>{{ truck.engine_number }}</td>
                   <td>{{ truck.chassis_number }}</td>
                   <td>
@@ -111,7 +111,7 @@
                       <button
                         type="submit"
                         class="btn btn-danger btn-sm"
-                        onclick="return confirm('Are you sure you want to delete this item?');"
+                        onclick="return confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.');"
                       >
                         <i class="ti ti-trash"></i>
                       </button>

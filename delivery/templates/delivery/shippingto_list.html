@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% block content %} {% load static %}
+{% extends 'base.html' %} {% block content %} {% load static fleet_format %}
 
 <div class="card bg-light-info shadow-none position-relative overflow-hidden">
   <div class="card-body px-4 py-3">
@@ -82,7 +82,7 @@
                   </td>
                   <td>{{ dest.spbu.name|default:dest.spbu.code }}</td>
                   <td>{{ dest.ol_number }}</td>
-                  <td>{{ dest.estimated_distance_km }}</td>
+                  <td class="text-end" data-order="{{ dest.estimated_distance_km }}">{{ dest.estimated_distance_km|floatformat:"-1" }}</td>
                   <td>{{ dest.order_date|date:"d M Y" }}</td>
                   <td>{{ dest.delivery_date|date:"d M Y"|default:"-" }}</td>
                   <td>{{ dest.items.count }}</td>
@@ -102,7 +102,7 @@
                       <button
                         type="submit"
                         class="btn btn-danger btn-sm"
-                        onclick="return confirm('Are you sure you want to delete this item?');"
+                        onclick="return confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.');"
                       >
                         <i class="ti ti-trash"></i>
                       </button>

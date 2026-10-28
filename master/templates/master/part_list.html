@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% block content %} {% load static %}
+{% extends 'base.html' %} {% block content %} {% load static fleet_format %}
 
 <div class="card bg-light-info shadow-none position-relative overflow-hidden">
   <div class="card-body px-4 py-3">
@@ -76,10 +76,10 @@
                 <tr>
                   <td>{{ part.name }}</td>
                   <td>{{ part.part_code }}</td>
-                  <td>{{ part.get_jenis_part_display }}</td>
+                  <td>{{ part.component_type }}</td>
                   <td>{{ part.description }}</td>
-                  <td>{{ part.quantity }}</td>
-                  <td>{{ part.unit_price }}</td>
+                  <td class="text-end" data-order="{{ part.quantity }}">{{ part.quantity|ribuan }}</td>
+                  <td class="text-end" data-order="{{ part.unit_price }}">{{ part.unit_price|rupiah }}</td>
                   <td>
                     {% for v in part.vendor.all %} {{ v.name }}{% if not forloop.last %}, {% endif %} {% empty %} Tidak ada vendor {% endfor %}
                   </td>
@@ -99,7 +99,7 @@
                       <button
                         type="submit"
                         class="btn btn-danger btn-sm"
-                        onclick="return confirm('Are you sure you want to delete this item?');"
+                        onclick="return confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.');"
                       >
                         <i class="ti ti-trash"></i>
                       </button>

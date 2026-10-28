@@ -44,7 +44,16 @@ class Record(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # only work that actually happened tells us the truck's real odometer
+    ODOMETER_STATUSES = ('in_progress', 'completed', 'done')
+
     def save(self, *args, **kwargs):
+        self._save_with_reference(*args, **kwargs)
+        if self.odometer_reading and self.status in self.ODOMETER_STATUSES:
+            from master.odometer import record_odometer
+            record_odometer(self.truck, self.odometer_reading, 'maintenance', self.service_date)
+
+    def _save_with_reference(self, *args, **kwargs):
         if self.order_reference:
             return super().save(*args, **kwargs)
         # Generate the order reference in the format MTNE/YEAR/IDNUMBER from the record's own
@@ -70,14 +79,34 @@ class Log(models.Model):
     def __str__(self):
         return f"{self.record} - {self.log_type} - {self.log_description} - {self.updated_by}"
     
-class RecordParts(models.Model):
-    record = models.ForeignKey(Record, on_delete=models.CASCADE)  # Links to the Record model
-    part = models.ForeignKey('master.Part', on_delete=models.CASCADE)  # Links to the Part model
-    quantity = models.IntegerField(default=1)  # Optional: Add quantity if needed
-    added_at = models.DateTimeField(auto_now_add=True)  # Optional: Track when the part was added
+class RecordItem(models.Model):
+    """
+    Satu baris pekerjaan dalam record maintenance: komponen apa yang dikerjakan,
+    tindakannya, dan (opsional) part yang dipasang.
+    """
+    ACTION_REPLACE = 'replace'
+    ACTION_CHOICES = [
+        (ACTION_REPLACE, 'Ganti'),
+        ('top_up', 'Tambah / Top Up'),
+        ('inspect', 'Inspeksi'),
+        ('repair', 'Perbaikan'),
+    ]
+
+    record = models.ForeignKey(Record, on_delete=models.CASCADE, related_name='items')
+    component_type = models.ForeignKey('master.ComponentType', on_delete=models.PROTECT, related_name='record_items')
+    part = models.ForeignKey('master.Part', on_delete=models.SET_NULL, null=True, blank=True)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, default=ACTION_REPLACE)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
+    unit_price = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)  # harga saat transaksi
+    notes = models.CharField(max_length=255, blank=True, null=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def subtotal(self):
+        return (self.unit_price or 0) * self.quantity
 
     def __str__(self):
-        return f"{self.record.order_reference} - {self.part.name} - Quantity: {self.quantity}"
+        return f"{self.record.order_reference} - {self.get_action_display()} {self.component_type} ({self.quantity})"
     
 class TruckDeviceModel(models.Model):
     truck = models.ForeignKey('master.Truck', on_delete=models.CASCADE)

@@ -10,6 +10,7 @@ urlpatterns = [
     path('list-driver', views.driver_list, name='driver_list'),
     path('list-spbu', views.spbu_list, name='spbu_list'),
     path('list-product', views.product_list, name='product_list'),
+    path('list-componenttype', views.componenttype_list, name='componenttype_list'),
     path('coba-template', views.coba_template, name='coba_template'),
 
     path('form-merek', views.create_Merek, name='create_Merek'),
@@ -20,6 +21,7 @@ urlpatterns = [
     path('form-driver', views.create_Driver, name='create_Driver'),
     path('form-spbu', views.create_Spbu, name='create_Spbu'),
     path('form-product', views.create_Product, name='create_Product'),
+    path('form-componenttype', views.create_ComponentType, name='create_ComponentType'),
 
     path('update-merek/<int:pk>/', views.update_Merek, name='update_Merek'),
     path('update-truck/<int:pk>/', views.update_Truck, name='update_Truck'),
@@ -29,6 +31,7 @@ urlpatterns = [
     path('update-driver/<int:pk>/', views.update_Driver, name='update_Driver'),
     path('update-spbu/<int:pk>/', views.update_Spbu, name='update_Spbu'),
     path('update-product/<int:pk>/', views.update_Product, name='update_Product'),
+    path('update-componenttype/<int:pk>/', views.update_ComponentType, name='update_ComponentType'),
 
     path('delete-merek/<int:pk>/', views.delete_Merek, name='delete_Merek'),
     path('delete-truck/<int:pk>/', views.delete_Truck, name='delete_Truck'),
@@ -38,5 +41,6 @@ urlpatterns = [
     path('delete-driver/<int:pk>/', views.delete_Driver, name='delete_Driver'),
     path('delete-spbu/<int:pk>/', views.delete_Spbu, name='delete_Spbu'),
     path('delete-product/<int:pk>/', views.delete_Product, name='delete_Product'),
+    path('delete-componenttype/<int:pk>/', views.delete_ComponentType, name='delete_ComponentType'),
 ]
 #path('create-form', views.create_form, name='create_form'),

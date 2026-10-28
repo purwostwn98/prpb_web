@@ -6,11 +6,10 @@ from unfold.decorators import display
 from .models import *
 from master.models import Truck
 
-class RecordPartsInline(TabularInline):
-    model = RecordParts
+class RecordItemInline(TabularInline):
+    model = RecordItem
     extra = 0
-    fields = ['record','part', 'quantity']
-    readonly_fields = ['record']
+    fields = ['component_type', 'action', 'part', 'quantity', 'unit_price', 'notes']
 @admin.register(Record)
 class RecordAdmin(ModelAdmin):
     list_display = [
@@ -68,7 +67,7 @@ class RecordAdmin(ModelAdmin):
                     updated_by=request.user.id
                 )
     # Add the inline to your RecordAdmin
-    inlines = [RecordPartsInline]
+    inlines = [RecordItemInline]
     
 
 
@@ -79,4 +78,4 @@ class RecordAdmin(ModelAdmin):
 
 # admin.site.register(Record)
 admin.site.register(Log)
-admin.site.register(RecordParts)
+admin.site.register(RecordItem)

@@ -1,8 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404 # type: ignore
 
 # Create your views here.
-from .models import Merek, Truck, Company, Vendor, Part, Driver, Spbu, Product
-from .forms import MerekForm, TruckForm, CompanyForm, VendorForm, PartForm, DriverForm, SpbuForm, ProductForm
+from django.contrib import messages # type: ignore
+from django.db.models import Count, ProtectedError # type: ignore
+
+from .models import Merek, Truck, Company, Vendor, Part, Driver, Spbu, Product, ComponentType
+from .forms import MerekForm, TruckForm, CompanyForm, VendorForm, PartForm, DriverForm, SpbuForm, ProductForm, ComponentTypeForm
 
 def coba_template(request):
     return render(request, 'base.html')
@@ -240,23 +243,12 @@ def update_Vendor(request, pk):
 
 def update_Part(request, pk):
     part = get_object_or_404(Part, pk=pk)
-    data = {
-        'name': part.name,
-        'part_code': part.part_code,
-        'jenis_part': part.jenis_part,
-        'description': part.description,
-        'quantity': part.quantity,
-        'unit_price': part.unit_price,
-        'vendor': part.vendor,
-        'created_at': part.created_at,
-        'updated_at': part.updated_at,
-    }
-    form_part = PartForm(request.POST or None, initial=data, instance=part)
+    form_part = PartForm(request.POST or None, instance=part)
     if request.method == 'POST':
         if form_part.is_valid():
             form_part.save()
-        return redirect('part_list')  # Redirect to the list view after saving
-    
+            return redirect('part_list')  # Redirect to the list view after saving
+
     context = {
         'form_part': form_part,
         'page_title': 'Update Part',
@@ -386,3 +378,60 @@ def delete_Product(request, pk):
 #     context['part_form'] = part_form
 
 #     return render(request, 'master/create.html', context)
+
+# Jenis Komponen (ComponentType)
+def componenttype_list(request):
+    component_types = ComponentType.objects.annotate(
+        part_count=Count('parts', distinct=True),
+        item_count=Count('record_items', distinct=True),
+    ).order_by('name')
+    context = {
+        'component_types': component_types,
+        'page': ['master', 'componenttype'],
+        'title': 'Daftar Jenis Komponen',
+    }
+    return render(request, 'master/componenttype_list.html', context)
+
+
+def create_ComponentType(request):
+    form_componenttype = ComponentTypeForm(request.POST or None)
+    if request.method == 'POST':
+        if form_componenttype.is_valid():
+            form_componenttype.save()
+            return redirect('componenttype_list')
+    context = {
+        'form_componenttype': form_componenttype,
+        'page': ['master', 'componenttype'],
+        'title': 'Tambah Jenis Komponen',
+    }
+    return render(request, 'master/create_componenttype.html', context)
+
+
+def update_ComponentType(request, pk):
+    component_type = get_object_or_404(ComponentType, pk=pk)
+    form_componenttype = ComponentTypeForm(request.POST or None, instance=component_type)
+    if request.method == 'POST':
+        if form_componenttype.is_valid():
+            form_componenttype.save()
+            return redirect('componenttype_list')
+    context = {
+        'form_componenttype': form_componenttype,
+        'page_title': 'Update Jenis Komponen',
+        'page': ['master', 'componenttype'],
+        'title': 'Update Jenis Komponen',
+    }
+    return render(request, 'master/create_componenttype.html', context)
+
+
+def delete_ComponentType(request, pk):
+    component_type = get_object_or_404(ComponentType, pk=pk)
+    if request.method == 'POST':
+        try:
+            component_type.delete()
+        except ProtectedError:
+            messages.error(
+                request,
+                f"Jenis komponen {component_type.name} sudah dipakai oleh part atau record maintenance "
+                "sehingga tidak dapat dihapus. Nonaktifkan saja jika tidak dipakai lagi.",
+            )
+    return redirect('componenttype_list')

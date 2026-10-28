@@ -1,5 +1,58 @@
 from django import forms
-from .models import Merek, Truck, Company, Vendor, Part, Driver, Spbu, Product
+from django.utils import timezone # type: ignore
+from .models import Merek, Truck, Company, Vendor, Part, Driver, Spbu, Product, ComponentType
+
+
+class ComponentTypeForm(forms.ModelForm):
+    class Meta:
+        model = ComponentType
+        exclude = ['created_at', 'updated_at']
+
+        labels = {
+            'code': 'Kode',
+            'name': 'Nama Komponen',
+            'category': 'Kategori',
+            'unit': 'Satuan',
+            'interval_km': 'Interval Penggantian (KM)',
+            'interval_days': 'Interval Penggantian (Hari)',
+            'warning_km': 'Peringatan Sisa KM',
+            'warning_days': 'Peringatan Sisa Hari',
+            'track_reliability': 'Hitung MTTF / Reliability',
+            'is_active': 'Aktif',
+            'description': 'Deskripsi',
+        }
+
+        help_texts = {
+            'code': 'Kode unik huruf besar tanpa spasi, mis. OLI_MESIN.',
+            'interval_km': 'Kosongkan jika tidak dijadwalkan berdasarkan jarak.',
+            'interval_days': 'Kosongkan jika tidak dijadwalkan berdasarkan waktu.',
+            'warning_km': 'Status "Segera" jika sisa KM kurang dari nilai ini, mis. 2000.',
+            'warning_days': 'Status "Segera" jika sisa hari kurang dari nilai ini.',
+            'track_reliability': 'Centang jika penggantian komponen ini dianalisis di dashboard truck.',
+        }
+
+        error_messages = {
+            'code': {'required': 'Kode harus diisi.', 'unique': 'Kode ini sudah digunakan.'},
+            'name': {'required': 'Nama komponen harus diisi.'},
+            'category': {'required': 'Kategori harus dipilih.'},
+        }
+
+        widgets = {
+            'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'mis. OLI_MESIN'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'mis. Oli Mesin'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'unit': forms.Select(attrs={'class': 'form-select'}),
+            'interval_km': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'mis. 10000'}),
+            'interval_days': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'mis. 180'}),
+            'warning_km': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'mis. 2000'}),
+            'warning_days': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'mis. 14'}),
+            'track_reliability': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+    def clean_code(self):
+        return self.cleaned_data['code'].strip().upper().replace(' ', '_')
 
 
 class MerekForm(forms.ModelForm):
@@ -30,7 +83,7 @@ class MerekForm(forms.ModelForm):
 class TruckForm(forms.ModelForm):
     class Meta:
         model = Truck
-        exclude = ['created_at', 'updated_at']
+        exclude = ['created_at', 'updated_at', 'odometer_updated_at', 'odometer_source']
 
         labels = {
             "license_plate": "Nomor Polisi",
@@ -98,6 +151,17 @@ class TruckForm(forms.ModelForm):
             'chassis_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nomor rangka'}),
         }
 
+
+    def save(self, commit=True):
+        truck = super().save(commit=False)
+        if 'current_odometer' in self.changed_data:
+            # admins may also lower the value here to correct a wrong reading
+            truck.odometer_updated_at = timezone.now()
+            truck.odometer_source = 'manual'
+        if commit:
+            truck.save()
+            self.save_m2m()
+        return truck
 
 class CompanyForm(forms.ModelForm):
     class Meta:
@@ -197,7 +261,7 @@ class PartForm(forms.ModelForm):
         labels = {
             'name': 'Nama Part',
             'part_code': 'Kode Part',
-            'jenis_part': 'Jenis Part',
+            'component_type': 'Jenis Komponen',
             'description': 'Deskripsi Part',
             'quantity': 'Kuantitas',
             'unit_price': 'Harga Satuan',
@@ -207,7 +271,7 @@ class PartForm(forms.ModelForm):
         help_texts = {
             'name': 'Masukkan nama part.',
             'part_code': 'Masukkan kode unik untuk part.',
-            'jenis_part': 'Pilih jenis part dari daftar yang tersedia.',
+            'component_type': 'Pilih jenis komponen. Tambah jenis baru di menu Master > Jenis Komponen.',
             'description': 'Masukkan deskripsi singkat tentang part.',
             'quantity': 'Masukkan jumlah part yang tersedia.',
             'unit_price': 'Masukkan harga satuan untuk part.',
@@ -224,8 +288,8 @@ class PartForm(forms.ModelForm):
                 'max_length': 'Kode part tidak boleh lebih dari 100 karakter.',
                 #'unique': 'Kode part ini sudah ada, silakan gunakan kode yang berbeda.',
             },
-            'jenis_part': {
-                'required': 'Jenis part harus dipilih.',
+            'component_type': {
+                'required': 'Jenis komponen harus dipilih.',
             },
             'description':{
                 'required' : 'Deskripsi part harus diisi.',
@@ -244,7 +308,7 @@ class PartForm(forms.ModelForm):
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nama part'}),
             'part_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan kode part'}),
-            'jenis_part': forms.Select(attrs={'class': 'form-select'}),
+            'component_type': forms.Select(attrs={'class': 'form-select'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Masukkan deskripsi part'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan kuantitas'}),
             'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan harga satuan'}),

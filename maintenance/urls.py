@@ -12,6 +12,9 @@ urlpatterns = [
     path('dinamis/get-fuel-filter-pressure/<int:id>/', views.getFuelFilterPressure, name='get_fuel_filter_pressure'),
     path('dinamis/get-maintenance-history/<int:id>/', views.getMaintenanceHistory, name='get_maintenance_history'),
 
+    path('early-warning', views.early_warning, name='early_warning'),
+    path('update-odometer/<int:truck_id>/', views.update_odometer, name='update_odometer'),
+
     path('list-record', views.record_list, name='record_list'),
     path('record/<int:pk>/', views.record_detail, name='record_detail'),
     path('form-record', views.create_Record, name='create_Record'),
