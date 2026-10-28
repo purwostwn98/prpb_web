@@ -86,30 +86,36 @@ def dashboard_truck(request):
     View function to render the dashboard page.
     """
     truck_id = request.GET.get('id')
-    last_maintenance = get_last_maintenance_record(truck_id)
-    truck_data = Truck.objects.filter(id=truck_id).first()
-    oee_value = None
+    if not (truck_id and truck_id.isdigit()):
+        truck_id = None
+    last_maintenance = get_last_maintenance_record(truck_id) if truck_id else None
+    truck_data = Truck.objects.filter(id=truck_id).first() if truck_id else None
+    oee_value = 0
+    mttf = 0
+    persentase_mttf = 0
+    reliability = 0
+    maintenance_records = []
     if truck_data:
         ## menghitung last performance
-        maintenance_record = MaintenanceRecord.objects.filter(truck=truck_data).order_by('-odometer_reading').first()
-        second_max_record = MaintenanceRecord.objects.filter(truck=truck_data).order_by('-odometer_reading')[1:2].first()
-        while maintenance_record.odometer_reading == second_max_record.odometer_reading:
-            second_max_record = MaintenanceRecord.objects.filter(truck=truck_data).order_by('-odometer_reading')[1:3].first()
-        max_record = maintenance_record.odometer_reading if maintenance_record else 0
-        second_max_record = second_max_record.odometer_reading if second_max_record else 0
-        # print(max_record)
-        # print(second_max_record)
-        # print(max_record - second_max_record)
+        # dua odometer tertinggi yang berbeda (record dengan odometer sama dianggap satu servis)
+        top_odometers = list(
+            MaintenanceRecord.objects
+            .filter(truck=truck_data, odometer_reading__isnull=False)
+            .order_by('-odometer_reading')
+            .values_list('odometer_reading', flat=True)
+            .distinct()[:2]
+        )
+        max_record = top_odometers[0] if len(top_odometers) > 0 else 0
+        second_max_record = top_odometers[1] if len(top_odometers) > 1 else 0
         ideal_odometer = 10000
-        availability = (max_record - second_max_record) / ideal_odometer * 100 if maintenance_record and second_max_record else 0
-        performance = ((max_record - second_max_record) / ideal_odometer) * 100 if maintenance_record else 0
+        availability = (max_record - second_max_record) / ideal_odometer * 100 if max_record and second_max_record else 0
+        performance = ((max_record - second_max_record) / ideal_odometer) * 100 if max_record else 0
         quality = 100  # Assuming quality is always 100% for this example
         oee_value = (availability * performance * quality) / 10000 if availability and performance else 0
         if oee_value > 100:
             oee_value = 99.99
 
         ## menghitung mttf
-        mttf = 0
         pembagi = 0
 
         ## Reliablity
@@ -288,6 +294,8 @@ def getInputDataML(request, id):
             while last_ttf_km < 1000:
                 i += 1
                 second_maintenance_record = get_second_last_maintenance_record(truck_id, i)
+                if not second_maintenance_record:
+                    break
                 last_ttf_km = last_maintenance.odometer_reading - second_maintenance_record.odometer_reading
                 last_ttf_days = (last_maintenance.service_date - second_maintenance_record.service_date).days
     

@@ -87,9 +87,16 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'core.middleware.LoginRequiredMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+LOGIN_URL = 'index'
+
+# Map Django's "error" message level to Bootstrap's "danger" alert class.
+from django.contrib.messages import constants as message_constants # type: ignore
+MESSAGE_TAGS = {message_constants.ERROR: 'danger'}
 
 ROOT_URLCONF = 'myproject.urls'
 

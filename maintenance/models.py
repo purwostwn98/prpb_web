@@ -1,5 +1,7 @@
 from django.db import models # type: ignore
+from django.db import transaction # type: ignore
 from datetime import datetime
+import uuid
 
 # Create your models here.
 class Record(models.Model):
@@ -43,13 +45,16 @@ class Record(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        if not self.order_reference:
-            # Generate the order reference in the format MTNE/YEAR/IDNUMBER
+        if self.order_reference:
+            return super().save(*args, **kwargs)
+        # Generate the order reference in the format MTNE/YEAR/IDNUMBER from the record's own
+        # primary key, so concurrent saves can never produce the same number.
+        with transaction.atomic():
+            self.order_reference = f"TMP/{uuid.uuid4().hex}"
+            super().save(*args, **kwargs)
             current_year = datetime.now().year
-            last_record = Record.objects.order_by('id').last()
-            next_id = last_record.id + 1 if last_record else 1
-            self.order_reference = f"MTNE/{current_year}/{next_id:05d}"  # IDNUMBER padded to 5 digits
-        super().save(*args, **kwargs)
+            self.order_reference = f"MTNE/{current_year}/{self.pk:05d}"  # IDNUMBER padded to 5 digits
+            Record.objects.filter(pk=self.pk).update(order_reference=self.order_reference)
 
     def __str__(self):
         return f"{self.order_reference} - {self.description}"

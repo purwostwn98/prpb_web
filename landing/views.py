@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout # type: ignore
 from django.contrib.auth.decorators import login_required # type: ignore
 from django.contrib import messages # type: ignore
 from django.urls import reverse_lazy # type: ignore
+from django.utils.http import url_has_allowed_host_and_scheme # type: ignore
 from django.views.generic import TemplateView # type: ignore
 from django.contrib.auth.views import LoginView, LogoutView # type: ignore
 
@@ -22,7 +23,11 @@ def index(request):
             messages.success(request, 'Login successful!')
             
             # Redirect to next page or dashboard
-            next_page = request.GET.get('next', 'dashboard')
+            next_page = request.GET.get('next')
+            if not next_page or not url_has_allowed_host_and_scheme(
+                next_page, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+            ):
+                next_page = 'dashboard'
             return redirect(next_page)
         else:
             messages.error(request, 'Invalid username or password.')

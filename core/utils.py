@@ -1,6 +1,7 @@
 from master.models import Truck
 import requests # type:ignore
 import json
+import os
 import numpy as np
 
 
@@ -32,7 +33,7 @@ def get_second_last_maintenance_record(truck_id, index):
     from maintenance.models import Record as MaintenanceRecord
     try:    
         records = MaintenanceRecord.objects.filter(truck__id=truck_id).order_by('-service_date')
-        if len(records) >= 2:
+        if len(records) >= 2 and index < len(records):
             second_last_record = records[index]
             return second_last_record
         else:
@@ -161,9 +162,13 @@ def get_fuel_filter_pressure_from_api(device_id):
     Returns:
         dict: The most recent reading, or None if unavailable or an error occurs.
     """
+    token = os.environ.get('IOT_API_TOKEN')
+    if not token:
+        print("IOT_API_TOKEN is not set; skipping fuel filter pressure request.")
+        return None
     url = "https://iot.ums-biroti.id/api/S01/?device_id=" + device_id
     headers = {
-        'Authorization': 'Token 9bc1840fce83fc3ae12a311870245eec86f2e4b7'
+        'Authorization': 'Token ' + token
     }
     decoder = json.JSONDecoder()
     try:
