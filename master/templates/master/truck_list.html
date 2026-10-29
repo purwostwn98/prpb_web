@@ -57,7 +57,7 @@
           <div class="table-responsive">
             <table
               id="zero_config"
-              class="table border table-striped table-bordered text-nowrap"
+              class="table border table-striped table-bordered align-middle"
             >
               <thead>
                 <tr>
@@ -69,8 +69,6 @@
                   <th class="text-end">Odometer Saat Ini</th>
                   <th>Status Kendaraan</th>
                   <th>Tanggal Akuisisi</th>
-                  <th>Nomor Mesin</th>
-                  <th>Nomor Chassis</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
@@ -81,46 +79,47 @@
                   <td>{{ truck.brand }}</td>
                   <td>{{ truck.model }}</td>
                   <td>{{ truck.year }}</td>
-                  <td class="text-end" data-order="{{ truck.capacity }}">{{ truck.capacity|ribuan }} L</td>
-                  <td class="text-end" data-order="{{ truck.current_odometer }}">{{ truck.current_odometer|ribuan }} km</td>
+                  <td class="text-end text-nowrap" data-order="{{ truck.capacity }}">{{ truck.capacity|ribuan }} L</td>
+                  <td class="text-end text-nowrap" data-order="{{ truck.current_odometer }}">{{ truck.current_odometer|ribuan }} km</td>
                   <td>
-                    {% if truck.status == 'active' %}
-                    <span class="badge bg-success">Active</span>
-                    {% elif truck.status == 'maintenance' %}
-                    <span class="badge bg-warning">In Maintenance</span>
-                    {% else %}
-                    <span class="badge bg-danger">Inactive</span>
-                    {% endif %}
+                    <span class="badge {{ truck.status|status_badge }}">{{ truck.get_status_display|default:"-" }}</span>
                   </td>
                   <td data-order="{{ truck.acquisition_date|date:'Y-m-d' }}">{% if truck.acquisition_date and truck.acquisition_date.year > 1900 %}{{ truck.acquisition_date|date:"d M Y" }}{% else %}-{% endif %}</td>
-                  <td>{{ truck.engine_number }}</td>
-                  <td>{{ truck.chassis_number }}</td>
-                  <td>
+                  <td class="text-nowrap">
+                    <a
+                      href="{% url 'dashboard-truck' %}?id={{ truck.id }}"
+                      class="btn btn-info btn-sm" title="Dashboard truck" aria-label="Dashboard truck"
+                    >
+                      <i class="ti ti-eye"></i>
+                    </a>
                     <a
                       href="{% url 'update_Truck' truck.id %}"
-                      class="btn btn-warning btn-sm"
+                      class="btn btn-warning btn-sm" title="Ubah" aria-label="Ubah"
                     >
                       <i class="ti ti-edit"></i>
                     </a>
+                    {% if truck.usage %}
+                    <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" title="Tidak dapat dihapus: dipakai oleh {{ truck.usage|join:', ' }}">
+                      <button type="button" class="btn btn-light btn-sm border" disabled aria-label="Tidak dapat dihapus, masih dipakai">
+                        <i class="ti ti-lock"></i>
+                      </button>
+                    </span>
+                    {% else %}
                     <form
                       action="{% url 'delete_Truck' truck.id %}"
                       method="POST"
-                      class="d-inline"
+                      class="d-inline" data-confirm="Hapus truck {{ truck.license_plate }}?"
                     >
                       {% csrf_token %}
                       <button
                         type="submit"
-                        class="btn btn-danger btn-sm"
-                        onclick="return confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.');"
+                        class="btn btn-danger btn-sm" title="Hapus" aria-label="Hapus"
                       >
                         <i class="ti ti-trash"></i>
                       </button>
                     </form>
+                    {% endif %}
                   </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="11">No posts available.</td>
                 </tr>
                 {% endfor %}
               </tbody>

@@ -19,7 +19,7 @@ class RecordForm(forms.ModelForm):
             'vendor': 'Vendor',
             'service_location': 'Lokasi Service',
             'technician_name': 'Nama Teknisi',
-            'cost': 'Biaya',
+            'cost': 'Biaya Total',
             'description': 'Deskripsi',
             'notes': 'Catatan',
             'status': 'Status',
@@ -46,11 +46,24 @@ class RecordForm(forms.ModelForm):
             'vendor': forms.Select(attrs={'class': 'form-select select2', 'data-placeholder': 'Cari...'}),
             'service_location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan lokasi service'}),
             'technician_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan nama teknisi'}),
-            'cost': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan biaya'}),
+            'cost': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Otomatis dari total komponen'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Masukkan deskripsi'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Catatan tambahan (opsional)'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
         }
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['cost'].required = False
+        if not self.instance.pk:
+            self.initial['cost'] = None  # empty, so the component total is used unless a cost is typed
+
+    def clean_cost(self):
+        cost = self.cleaned_data.get('cost')
+        # empty cost means "use the total of the component prices" (filled in by the view)
+        self.cost_from_items = cost is None
+        return cost if cost is not None else 0
 
 
 class RecordItemForm(forms.ModelForm):
@@ -77,7 +90,7 @@ class RecordItemForm(forms.ModelForm):
             'action': forms.Select(attrs={'class': 'form-select'}),
             'part': forms.Select(attrs={'class': 'form-select'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'min': '0'}),
-            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': 'Otomatis dari part'}),
+            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': 'Dari part'}),
             'notes': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Opsional'}),
         }
 
@@ -92,6 +105,9 @@ class RecordItemForm(forms.ModelForm):
         self.fields['part'].required = False
         self.fields['part'].empty_label = '- Tanpa part / tidak terdaftar -'
         self.fields['part'].label_from_instance = lambda p: f"{p.name} ({p.part_code}) - {p.component_type}"
+        if not self.instance.pk:
+            # no meaningful default: 1 fits a filter (pcs) but not engine oil (liter); the page JS fills pcs
+            self.fields['quantity'].initial = None
 
     def clean(self):
         cleaned_data = super().clean()

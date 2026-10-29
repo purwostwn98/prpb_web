@@ -150,6 +150,32 @@ class RecordItemFormTests(TestCase):
         self.assertEqual(oil.unit_price, 60000)  # copied from the part
         self.assertEqual(record.items.count(), 2)
 
+    def test_empty_cost_is_filled_from_component_prices(self):
+        self.client.force_login(self.user)
+        self.client.post('/maintenance/form-record', self.record_post([
+            {'component_type': self.oli.pk, 'action': 'replace', 'quantity': '5', 'unit_price': '60000'},
+            {'component_type': self.filter_atas.pk, 'action': 'replace', 'quantity': 1, 'unit_price': '45000'},
+        ], cost=''))
+        self.assertEqual(Record.objects.get().cost, 345000)
+
+    def test_record_list_filters_by_component(self):
+        self.client.force_login(self.user)
+        self.client.post('/maintenance/form-record', self.record_post([
+            {'component_type': self.oli.pk, 'action': 'replace', 'quantity': '5'},
+        ]))
+        self.client.post('/maintenance/form-record', self.record_post([
+            {'component_type': self.filter_atas.pk, 'action': 'replace', 'quantity': 1},
+        ]))
+        response = self.client.get('/maintenance/list-record?component=OLI_MESIN')
+        self.assertEqual(response.context['page_obj'].paginator.count, 1)
+        self.assertContains(response, 'Oli Mesin')
+
+    def test_new_record_form_defaults_to_today(self):
+        from django.utils import timezone
+        self.client.force_login(self.user)
+        form = self.client.get('/maintenance/form-record').context['form_record']
+        self.assertEqual(form.initial['service_date'], timezone.localdate())
+
     def test_record_requires_at_least_one_component(self):
         self.client.force_login(self.user)
         response = self.client.post('/maintenance/form-record', self.record_post([]))

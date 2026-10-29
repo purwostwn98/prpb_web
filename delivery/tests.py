@@ -176,3 +176,17 @@ class ShippingAssignmentValidationTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('odometer_end', response.json())
         self.assertFalse(self.form(odometer_end=25000).is_valid())
+
+    def test_shipping_list_shows_destinations_and_load(self):
+        shipping = self.make_shipping('DO-1', 'draft', self.truck, self.driver)
+        for ol, qty in (('OL-1', 8000), ('OL-2', 9000)):
+            dest = ShippingTo.objects.create(
+                shipping=shipping, spbu=self.spbu, estimated_distance_km=1, ol_number=ol,
+                order_date=datetime.date(2026, 10, 28),
+            )
+            ShippingItem.objects.create(shippingto=dest, product=self.product, quantity=qty, unit_price=1)
+        self.client.force_login(self.admin)
+        row = self.client.get('/delivery/list-shipping').context['shippings'].get(pk=shipping.pk)
+        self.assertEqual((row.destination_count, row.total_quantity), (2, 17000))
+        response = self.client.get(f'/delivery/shipping/{shipping.pk}/')
+        self.assertContains(response, 'Melebihi kapasitas')  # 17.000 L on a 16.000 L truck

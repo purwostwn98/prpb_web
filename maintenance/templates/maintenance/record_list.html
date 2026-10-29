@@ -36,7 +36,7 @@
     <div class="card border-start border-4 border-primary">
       <div class="card-body py-3">
         <h6 class="card-title text-muted mb-1"><i class="ti ti-clipboard-list me-1"></i> Total Maintenance</h6>
-        <h3 class="mb-0 text-primary">{{ total_count }}</h3>
+        <h3 class="mb-0 text-primary">{{ total_count|ribuan }}</h3>
       </div>
     </div>
   </div>
@@ -44,7 +44,7 @@
     <div class="card border-start border-4 border-success">
       <div class="card-body py-3">
         <h6 class="card-title text-muted mb-1"><i class="ti ti-circle-check me-1"></i> Selesai</h6>
-        <h3 class="mb-0 text-success">{{ done_count }}</h3>
+        <h3 class="mb-0 text-success">{{ done_count|ribuan }}</h3>
       </div>
     </div>
   </div>
@@ -52,7 +52,7 @@
     <div class="card border-start border-4 border-warning">
       <div class="card-body py-3">
         <h6 class="card-title text-muted mb-1"><i class="ti ti-clock me-1"></i> Belum Selesai</h6>
-        <h3 class="mb-0 text-warning">{{ pending_count }}</h3>
+        <h3 class="mb-0 text-warning">{{ pending_count|ribuan }}</h3>
       </div>
     </div>
   </div>
@@ -92,8 +92,14 @@
                 <option value="{{ value }}" {% if value in status_filter %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
               </select>
+              <select name="component" class="form-select" style="min-width: 180px;" aria-label="Filter komponen">
+                <option value="">Semua Komponen</option>
+                {% for c in component_choices %}
+                <option value="{{ c.code }}" {% if c.code == component_filter %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+              </select>
               <button type="submit" class="btn btn-outline-primary">Cari</button>
-              {% if search or status_filter %}
+              {% if search or status_filter or component_filter %}
               <a href="{% url 'record_list' %}" class="btn btn-outline-secondary">Reset</a>
               {% endif %}
             </form>
@@ -105,12 +111,13 @@
           </p>
 
           <div class="table-responsive">
-            <table class="table border table-striped table-bordered text-nowrap">
+            <table class="table border table-striped table-bordered align-middle">
               <thead>
                 <tr>
                   <th>No. Order</th>
                   <th>Truck</th>
                   <th>Jenis</th>
+                  <th>Komponen</th>
                   <th>Tanggal Service</th>
                   <th>Vendor</th>
                   <th class="text-end">Biaya</th>
@@ -121,46 +128,42 @@
               <tbody>
                 {% for record in page_obj %}
                 <tr>
-                  <td>{{ record.order_reference }}</td>
+                  <td class="text-nowrap">{{ record.order_reference }}</td>
                   <td>{{ record.truck.license_plate|default:"-" }}</td>
                   <td>{{ record.get_maintenance_type_display|default:"-" }}</td>
-                  <td>{{ record.service_date|date:"d M Y" }}</td>
-                  <td>{{ record.vendor.name|default:"-" }}</td>
-                  <td class="text-end">{% if record.cost %}{{ record.cost|rupiah }}{% else %}-{% endif %}</td>
-                  <td>
-                    {% if record.status == 'done' or record.status == 'completed' or record.status == 'approved' %}
-                    <span class="badge bg-success">{{ record.get_status_display }}</span>
-                    {% elif record.status == 'cancelled' or record.status == 'rejected' %}
-                    <span class="badge bg-danger">{{ record.get_status_display }}</span>
-                    {% elif record.status == 'draft' %}
-                    <span class="badge bg-secondary">{{ record.get_status_display }}</span>
-                    {% else %}
-                    <span class="badge bg-warning text-dark">{{ record.get_status_display }}</span>
-                    {% endif %}
+                  <td style="min-width: 150px">
+                    {% for item in record.items.all %}
+                    <span class="badge bg-light text-dark border mb-1" title="{{ item.get_action_display }}">{% if item.action != 'replace' %}{{ item.get_action_display }} {% endif %}{{ item.component_type.name }}</span>
+                    {% empty %}-{% endfor %}
                   </td>
+                  <td class="text-nowrap">{{ record.service_date|date:"d M Y" }}</td>
+                  <td>{{ record.vendor.name|default:"-" }}</td>
+                  <td class="text-end text-nowrap">{% if record.cost %}{{ record.cost|rupiah }}{% else %}-{% endif %}</td>
                   <td>
+                    <span class="badge {{ record.status|status_badge }}">{{ record.get_status_display|default:"-" }}</span>
+                  </td>
+                  <td class="text-nowrap">
                     <a
                       href="{% url 'record_detail' record.id %}"
-                      class="btn btn-info btn-sm"
+                      class="btn btn-info btn-sm" title="Lihat detail" aria-label="Lihat detail"
                     >
                       <i class="ti ti-eye"></i>
                     </a>
                     <a
                       href="{% url 'update_Record' record.id %}"
-                      class="btn btn-warning btn-sm"
+                      class="btn btn-warning btn-sm" title="Ubah" aria-label="Ubah"
                     >
                       <i class="ti ti-edit"></i>
                     </a>
                     <form
                       action="{% url 'delete_Record' record.id %}"
                       method="POST"
-                      class="d-inline"
+                      class="d-inline" data-confirm="Hapus record {{ record.order_reference }}?" data-confirm-detail="Komponen yang dikerjakan dan riwayat statusnya ikut terhapus."
                     >
                       {% csrf_token %}
                       <button
                         type="submit"
-                        class="btn btn-danger btn-sm"
-                        onclick="return confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.');"
+                        class="btn btn-danger btn-sm" title="Hapus" aria-label="Hapus"
                       >
                         <i class="ti ti-trash"></i>
                       </button>
@@ -169,7 +172,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="8">Tidak ada data maintenance.</td>
+                  <td colspan="9">Tidak ada data maintenance.</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -181,7 +184,7 @@
             <ul class="pagination justify-content-center mb-0">
               {% if page_obj.has_previous %}
               <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search|urlencode }}{% for s in status_filter %}&status={{ s|urlencode }}{% endfor %}">Sebelumnya</a>
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search|urlencode }}{% for s in status_filter %}&status={{ s|urlencode }}{% endfor %}&component={{ component_filter|urlencode }}">Sebelumnya</a>
               </li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">Sebelumnya</span></li>
@@ -191,7 +194,7 @@
               </li>
               {% if page_obj.has_next %}
               <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search|urlencode }}{% for s in status_filter %}&status={{ s|urlencode }}{% endfor %}">Berikutnya</a>
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search|urlencode }}{% for s in status_filter %}&status={{ s|urlencode }}{% endfor %}&component={{ component_filter|urlencode }}">Berikutnya</a>
               </li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">Berikutnya</span></li>

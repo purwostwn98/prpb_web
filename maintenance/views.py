@@ -5,10 +5,11 @@ from django.shortcuts import render, redirect, get_object_or_404 # type: ignore
 from django.http import JsonResponse # type: ignore
 
 from master.models import ComponentType, Truck
+from delivery.models import Shipping
 from maintenance.models import Record as MaintenanceRecord
 from maintenance.models import TruckDeviceModel, Log, RecordItem
 from maintenance.forms import RecordForm, RecordItemFormSet, TruckDeviceForm
-from django.db.models import Count, Max, OuterRef, Subquery, Q # type: ignore
+from django.db.models import Count, Max, Q # type: ignore
 from django.db.models.functions import TruncMonth # type: ignore
 from django.core.paginator import Paginator # type: ignore
 from django.db import transaction # type: ignore
@@ -27,21 +28,14 @@ from django.contrib import messages # type: ignore
 from django.utils.http import url_has_allowed_host_and_scheme # type: ignore
 from django.views.decorators.http import require_POST # type: ignore
 
+BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+
+
 def dashboard(request):
     """
     View function to render the dashboard page.
     """
-    latest_device = TruckDeviceModel.objects.filter(truck=OuterRef('pk')).order_by('-installed_at')
-    trucks = (
-        Truck.objects.select_related('brand')
-        .annotate(
-            services_count=Count('record', distinct=True),
-            last_service_date=Max('record__service_date'),
-            device_model=Subquery(latest_device.values('device_model')[:1]),
-        )
-        .order_by('-year')
-    )
-    truck_count = trucks.count()
+    truck_count = Truck.objects.count()
 
     status_counts = {
         row['status']: row['count']
@@ -51,8 +45,12 @@ def dashboard(request):
     maintenance_count = status_counts.get('maintenance', 0)
     inactive_count = status_counts.get('inactive', 0)
 
+    # work that is waiting on someone: shipments on the road, maintenance not finished
+    running_shipping_count = Shipping.objects.filter(status='on_progress').count()
+    open_record_statuses = ['draft', 'requested', 'awaiting_approval', 'approved', 'in_progress']
+    open_record_count = MaintenanceRecord.objects.filter(status__in=open_record_statuses).count()
+
     total_maintenance_count = MaintenanceRecord.objects.count()
-    avg_records_per_truck = round(total_maintenance_count / truck_count, 1) if truck_count else 0
 
     serviced_truck_ids = MaintenanceRecord.objects.values_list('truck_id', flat=True).distinct()
     never_serviced_trucks = Truck.objects.select_related('brand').exclude(id__in=serviced_truck_ids)
@@ -81,13 +79,14 @@ def dashboard(request):
         'warning_component': warning_component,
         'warning_counts': warning_counts,
         'warning_urgent': warning_urgent,
-        'trucks': trucks,
         'truck_count': truck_count,
+        'running_shipping_count': running_shipping_count,
+        'open_record_count': open_record_count,
+        'open_record_statuses': open_record_statuses,
         'active_count': active_count,
         'maintenance_count': maintenance_count,
         'inactive_count': inactive_count,
         'total_maintenance_count': total_maintenance_count,
-        'avg_records_per_truck': avg_records_per_truck,
         'never_serviced_trucks': never_serviced_trucks,
         'never_serviced_count': never_serviced_count,
         'top_trucks': top_trucks,
@@ -160,9 +159,19 @@ def maintenanceTrendChart(request):
         .order_by('-month')[:6]
     )
     rows = list(qs)[::-1]
+    labels = [f"{BULAN[row['month'].month - 1]} {row['month'].year}" for row in rows]
+    note = None
+    last_date = MaintenanceRecord.objects.exclude(service_date__year__lt=1900).aggregate(d=Max('service_date'))['d']
+    if rows and last_date:
+        next_month = (last_date.replace(day=28) + timedelta(days=4)).replace(day=1)
+        if last_date < next_month - timedelta(days=1) and last_date.replace(day=1) == rows[-1]['month'].replace(day=1):
+            # the last month only has a few days of data; mark it so the drop is not misread
+            labels[-1] += '*'
+            note = f"* Data bulan terakhir hanya sampai {last_date.day} {BULAN[last_date.month - 1]} {last_date.year}."
     data = {
-        'labels': [row['month'].strftime('%b %Y') for row in rows],
+        'labels': labels,
         'values': [row['count'] for row in rows],
+        'note': note,
     }
     return JsonResponse(data)
 
@@ -330,13 +339,24 @@ def update_odometer(request, truck_id):
 
 # Manajemen Maintenance Truck (Record)
 
+def fill_cost_from_items(form_record, record):
+    """When the cost was left empty, use the total of the component prices."""
+    if getattr(form_record, 'cost_from_items', False):
+        record.cost = sum(item.subtotal for item in record.items.all())
+        record.save(update_fields=['cost'])
+
+
 def record_list(request):
     """
     View function to list all maintenance records.
     Server-side paginated and filterable: with 5,600+ records, dumping
     everything into one client-side DataTable would not scale.
     """
-    records = MaintenanceRecord.objects.select_related('truck', 'vendor').order_by('-service_date', '-id')
+    records = (
+        MaintenanceRecord.objects.select_related('truck', 'vendor')
+        .prefetch_related('items__component_type')
+        .order_by('-service_date', '-id')
+    )
 
     search = request.GET.get('q', '').strip()
     if search:
@@ -349,6 +369,12 @@ def record_list(request):
     status_filter = request.GET.getlist('status')
     if status_filter:
         records = records.filter(status__in=status_filter)
+
+    component_filter = request.GET.get('component', '')
+    if component_filter:
+        records = records.filter(
+            pk__in=RecordItem.objects.filter(component_type__code=component_filter).values('record_id')
+        )
 
     paginator = Paginator(records, 25)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -367,6 +393,8 @@ def record_list(request):
         'search': search,
         'status_filter': status_filter,
         'status_choices': MaintenanceRecord.STATUS_TYPE_CHOICES,
+        'component_filter': component_filter,
+        'component_choices': ComponentType.objects.order_by('name'),
         'page': ['maintenance', 'record'],
         'title': 'Daftar Maintenance',
     }
@@ -395,15 +423,18 @@ def create_Record(request):
     View function to create a new maintenance record together with the components worked on.
     """
     context = {'page': ['maintenance', 'record'], 'title': 'Tambah Maintenance'}
-    record_initial, item_initial = {}, []
+    item_initial = []
+    record_initial = {}
     if request.method == 'GET':
         # prefilled from the early warning page: ?truck=ID&component=CODE
         truck = Truck.objects.filter(pk=request.GET.get('truck')).first() if request.GET.get('truck', '').isdigit() else None
+        today = timezone.localdate()
+        record_initial = {'booking_date': today, 'service_date': today}
         if truck:
-            record_initial = {
+            record_initial.update({
                 'truck': truck, 'maintenance_type': 'preventive',
                 'odometer_reading': truck.current_odometer, 'status': 'done',
-            }
+            })
         component = ComponentType.objects.filter(code=request.GET.get('component')).first()
         if component:
             item_initial = [{'component_type': component, 'action': RecordItem.ACTION_REPLACE}]
@@ -419,6 +450,7 @@ def create_Record(request):
                 record.save()
                 formset.instance = record
                 formset.save()
+                fill_cost_from_items(form_record, record)
                 Log.objects.create(
                     record=record,
                     log_type=record.status,
@@ -428,6 +460,7 @@ def create_Record(request):
             return redirect('record_list')
     context['form_record'] = form_record
     context['formset'] = formset
+    context['component_units'] = {c.pk: c.unit for c in ComponentType.objects.all()}
     return render(request, 'maintenance/create_record.html', context)
 
 
@@ -444,6 +477,7 @@ def update_Record(request, pk):
             with transaction.atomic():
                 updated_record = form_record.save()
                 formset.save()
+                fill_cost_from_items(form_record, updated_record)
                 if old_status != updated_record.status:
                     Log.objects.create(
                         record=updated_record,
@@ -462,6 +496,7 @@ def update_Record(request, pk):
     context = {
         'form_record': form_record,
         'formset': formset,
+        'component_units': {c.pk: c.unit for c in ComponentType.objects.all()},
         'page_title': 'Update Maintenance',
         'page': ['maintenance', 'record'],
         'title': 'Update Maintenance',

@@ -185,7 +185,7 @@
                 {% else %}-{% endif %}
               </td>
               <td class="text-nowrap">
-                <span class="badge {% if row.status == 'overdue' %}bg-danger{% elif row.status == 'soon' %}bg-warning{% elif row.status == 'ok' %}bg-success{% else %}bg-light text-muted border{% endif %}">
+                <span class="badge {{ row.status|status_badge }}">
                   {{ row.status_label }}
                 </span>
               </td>

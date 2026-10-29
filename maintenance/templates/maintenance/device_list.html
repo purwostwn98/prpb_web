@@ -74,7 +74,7 @@
           <div class="table-responsive">
             <table
               id="zero_config"
-              class="table border table-striped table-bordered text-nowrap"
+              class="table border table-striped table-bordered align-middle"
             >
               <thead>
                 <tr>
@@ -92,32 +92,27 @@
                   <td>{{ device.truck.brand }} {{ device.truck.model }}</td>
                   <td>{{ device.device_model }}</td>
                   <td>{{ device.installed_at|date:"d M Y H:i" }}</td>
-                  <td>
+                  <td class="text-nowrap">
                     <a
                       href="{% url 'update_Device' device.id %}"
-                      class="btn btn-warning btn-sm"
+                      class="btn btn-warning btn-sm" title="Ubah" aria-label="Ubah"
                     >
                       <i class="ti ti-edit"></i>
                     </a>
                     <form
                       action="{% url 'delete_Device' device.id %}"
                       method="POST"
-                      class="d-inline"
+                      class="d-inline" data-confirm="Hapus perangkat {{ device.device_model }}?"
                     >
                       {% csrf_token %}
                       <button
                         type="submit"
-                        class="btn btn-danger btn-sm"
-                        onclick="return confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.');"
+                        class="btn btn-danger btn-sm" title="Hapus" aria-label="Hapus"
                       >
                         <i class="ti ti-trash"></i>
                       </button>
                     </form>
                   </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="5">No posts available.</td>
                 </tr>
                 {% endfor %}
               </tbody>

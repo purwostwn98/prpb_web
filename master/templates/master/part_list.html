@@ -57,7 +57,7 @@
           <div class="table-responsive">
             <table
               id="zero_config"
-              class="table border table-striped table-bordered text-nowrap"
+              class="table border table-striped table-bordered align-middle"
             >
               <thead>
                 <tr>
@@ -83,32 +83,35 @@
                   <td>
                     {% for v in part.vendor.all %} {{ v.name }}{% if not forloop.last %}, {% endif %} {% empty %} Tidak ada vendor {% endfor %}
                   </td>
-                  <td>
+                  <td class="text-nowrap">
                     <a
                       href="{% url 'update_Part' part.id %}"
-                      class="btn btn-warning btn-sm"
+                      class="btn btn-warning btn-sm" title="Ubah" aria-label="Ubah"
                     >
                       <i class="ti ti-edit"></i>
                     </a>
+                    {% if part.usage %}
+                    <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" title="Tidak dapat dihapus: dipakai oleh {{ part.usage|join:', ' }}">
+                      <button type="button" class="btn btn-light btn-sm border" disabled aria-label="Tidak dapat dihapus, masih dipakai">
+                        <i class="ti ti-lock"></i>
+                      </button>
+                    </span>
+                    {% else %}
                     <form
                       action="{% url 'delete_Part' part.id %}"
                       method="POST"
-                      class="d-inline"
+                      class="d-inline" data-confirm="Hapus part {{ part.name }}?"
                     >
                       {% csrf_token %}
                       <button
                         type="submit"
-                        class="btn btn-danger btn-sm"
-                        onclick="return confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.');"
+                        class="btn btn-danger btn-sm" title="Hapus" aria-label="Hapus"
                       >
                         <i class="ti ti-trash"></i>
                       </button>
                     </form>
+                    {% endif %}
                   </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="8">No posts available.</td>
                 </tr>
                 {% endfor %}
               </tbody>

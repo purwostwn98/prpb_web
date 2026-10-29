@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
+from django.db.models import Count, Sum
 
 # Create your views here.
 from .models import Shipping, ShippingTo
@@ -22,7 +23,14 @@ def shipping_list(request):
     """
     View function to list all shipping / fleet assignments (driver + truck).
     """
-    shippings = Shipping.objects.select_related('driver', 'truck').order_by('-order_date', '-id')
+    shippings = (
+        Shipping.objects.select_related('driver', 'truck')
+        .annotate(
+            destination_count=Count('destinations', distinct=True),
+            total_quantity=Sum('destinations__items__quantity'),
+        )
+        .order_by('-order_date', '-id')
+    )
 
     status_filter = request.GET.getlist('status')
     if status_filter:
@@ -48,7 +56,10 @@ def shipping_detail(request, pk):
     """
     View function to show shipping detail: assignment info, destinations, and items per destination.
     """
-    shipping = get_object_or_404(Shipping.objects.select_related('driver', 'truck'), pk=pk)
+    shipping = get_object_or_404(
+        Shipping.objects.select_related('driver', 'truck').annotate(total_quantity=Sum('destinations__items__quantity')),
+        pk=pk,
+    )
     destinations = (
         ShippingTo.objects.filter(shipping=shipping)
         .select_related('spbu')

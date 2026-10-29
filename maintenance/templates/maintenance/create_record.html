@@ -39,21 +39,17 @@
       <div class="card-body">
         <form method="POST">
           {% csrf_token %}
+          {% if form_record.non_field_errors %}
+          <div class="alert alert-danger">{{ form_record.non_field_errors }}</div>
+          {% endif %}
+          <h6 class="text-muted text-uppercase small fw-semibold mb-3"><i class="ti ti-truck me-1"></i>Truck &amp; Jadwal</h6>
           <div class="row">
-            {% for field in form_record %}
-            <div class="col-md-6 mb-3">
-              <label for="{{ field.id_for_label }}" class="form-label"
-                >{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label
-              >
-              {{ field }}
-              {% if field.help_text %}
-              <div class="form-text">{{ field.help_text }}</div>
-              {% endif %}
-              {% for error in field.errors %}
-              <div class="text-danger small">{{ error }}</div>
-              {% endfor %}
-            </div>
-            {% endfor %}
+            {% include 'partials/form_field.html' with field=form_record.truck %}
+            {% include 'partials/form_field.html' with field=form_record.maintenance_type %}
+            {% include 'partials/form_field.html' with field=form_record.booking_date col='col-md-4' %}
+            {% include 'partials/form_field.html' with field=form_record.service_date col='col-md-4' %}
+            {% include 'partials/form_field.html' with field=form_record.service_time col='col-md-4' %}
+            {% include 'partials/form_field.html' with field=form_record.odometer_reading %}
           </div>
 
           <hr class="my-4" />
@@ -137,6 +133,31 @@
             </tbody>
           </table>
 
+          <hr class="my-4" />
+          <h6 class="text-muted text-uppercase small fw-semibold mb-3"><i class="ti ti-building-warehouse me-1"></i>Bengkel</h6>
+          <div class="row">
+            {% include 'partials/form_field.html' with field=form_record.vendor col='col-md-4' %}
+            {% include 'partials/form_field.html' with field=form_record.service_location col='col-md-4' %}
+            {% include 'partials/form_field.html' with field=form_record.technician_name col='col-md-4' %}
+          </div>
+
+          <hr class="my-4" />
+          <h6 class="text-muted text-uppercase small fw-semibold mb-3"><i class="ti ti-receipt me-1"></i>Biaya, Status &amp; Catatan</h6>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form_record.cost.id_for_label }}" class="form-label">{{ form_record.cost.label }}</label>
+              {{ form_record.cost }}
+              <div class="form-text">
+                Total harga komponen: <strong id="items-total">Rp 0</strong>.
+                Kosongkan biaya untuk memakai total ini, atau isi jika ada biaya jasa.
+              </div>
+              {% for error in form_record.cost.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+            {% include 'partials/form_field.html' with field=form_record.status %}
+            {% include 'partials/form_field.html' with field=form_record.description %}
+            {% include 'partials/form_field.html' with field=form_record.notes %}
+          </div>
+
           <div>
             <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i>Simpan</button>
             <a href="{% url 'record_list' %}" class="btn btn-light"><i class="ti ti-x me-1"></i>Batal</a>
@@ -147,6 +168,7 @@
   </div>
 </div>
 {% endblock content %} {% block js_block %}
+{{ component_units|json_script:"component-units" }}
 <!-- Select2: searchable dropdowns for long lists (trucks, drivers, vendors) -->
 <link rel="stylesheet" href="{% static 'assets/libs/select2/dist/css/select2.min.css' %}" />
 <script src="{% static 'assets/libs/select2/dist/js/select2.min.js' %}"></script>
@@ -167,7 +189,38 @@
 
     $(document).on("click", ".remove-item-row", function () {
       $(this).closest("tr").remove();
+      updateItemsTotal();
     });
+
+    // quantity follows the component's unit: 1 for pieces, entered by hand for liters
+    var componentUnits = JSON.parse(document.getElementById("component-units").textContent);
+    function applyUnit(select) {
+      var row = $(select).closest("tr");
+      var unit = componentUnits[select.value];
+      var qty = row.find("input[name$='-quantity']");
+      qty.attr("placeholder", unit === "liter" ? "liter" : unit || "");
+      if (unit && unit !== "liter" && !qty.val()) qty.val(1);
+    }
+    $(document).on("change", "select[name$='-component_type']", function () {
+      applyUnit(this);
+    });
+    $("select[name$='-component_type']").each(function () {
+      if (this.value) applyUnit(this);
+    });
+
+    // live total of the component prices (shown next to the cost field)
+    function updateItemsTotal() {
+      var total = 0;
+      $("#item-formset-body tr").each(function () {
+        if ($(this).find("input[name$='-DELETE']").is(":checked")) return;
+        var qty = parseFloat($(this).find("input[name$='-quantity']").val()) || 0;
+        var price = parseFloat($(this).find("input[name$='-unit_price']").val()) || 0;
+        total += qty * price;
+      });
+      $("#items-total").text("Rp " + Math.round(total).toLocaleString("id-ID"));
+    }
+    $(document).on("input change", "#item-formset-body input", updateItemsTotal);
+    updateItemsTotal();
   });
 </script>
 {% endblock js_block %}

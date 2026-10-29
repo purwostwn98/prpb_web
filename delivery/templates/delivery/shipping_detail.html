@@ -39,15 +39,7 @@
         >
           <span><i class="ti ti-clipboard-list me-2"></i>Informasi Pengiriman</span>
           <span>
-            {% if shipping.status == 'completed' %}
-            <span class="badge bg-success">{{ shipping.get_status_display }}</span>
-            {% elif shipping.status == 'cancelled' %}
-            <span class="badge bg-danger">{{ shipping.get_status_display }}</span>
-            {% elif shipping.status == 'draft' %}
-            <span class="badge bg-secondary">{{ shipping.get_status_display }}</span>
-            {% else %}
-            <span class="badge bg-warning text-dark">{{ shipping.get_status_display }}</span>
-            {% endif %}
+            <span class="badge {{ shipping.status|status_badge }}">{{ shipping.get_status_display|default:"-" }}</span>
             <a href="{% url 'update_Shipping' shipping.id %}" class="btn btn-warning btn-sm ms-2">
               <i class="ti ti-edit"></i> Edit
             </a>
@@ -65,6 +57,15 @@
             <table class="table table-sm mb-0">
               <tr><td>Tanggal Order</td><td>:</td><td>{{ shipping.order_date|date:"d M Y" }}</td></tr>
               <tr><td>Tanggal Kirim</td><td>:</td><td>{{ shipping.delivery_date|date:"d M Y"|default:"-" }}</td></tr>
+              <tr>
+                <td>Total Muatan</td><td>:</td>
+                <td>
+                  {{ shipping.total_quantity|default:0|ribuan }}{% if shipping.truck %} / {{ shipping.truck.capacity|ribuan }}{% endif %} L
+                  {% if shipping.truck and shipping.total_quantity and shipping.total_quantity > shipping.truck.capacity %}
+                  <span class="badge bg-warning text-dark ms-1">Melebihi kapasitas</span>
+                  {% endif %}
+                </td>
+              </tr>
               <tr><td>KM Akhir</td><td>:</td><td>{% if shipping.odometer_end %}{{ shipping.odometer_end|ribuan }} km{% else %}<span class="text-muted">Belum diisi driver</span>{% endif %}</td></tr>
             </table>
           </div>

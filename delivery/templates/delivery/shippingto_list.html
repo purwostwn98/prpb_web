@@ -58,7 +58,7 @@
           <div class="table-responsive">
             <table
               id="zero_config"
-              class="table border table-striped table-bordered text-nowrap"
+              class="table border table-striped table-bordered align-middle"
             >
               <thead>
                 <tr>
@@ -86,32 +86,27 @@
                   <td>{{ dest.order_date|date:"d M Y" }}</td>
                   <td>{{ dest.delivery_date|date:"d M Y"|default:"-" }}</td>
                   <td>{{ dest.items.count }}</td>
-                  <td>
+                  <td class="text-nowrap">
                     <a
                       href="{% url 'update_ShippingTo' dest.id %}"
-                      class="btn btn-warning btn-sm"
+                      class="btn btn-warning btn-sm" title="Ubah" aria-label="Ubah"
                     >
                       <i class="ti ti-edit"></i>
                     </a>
                     <form
                       action="{% url 'delete_ShippingTo' dest.id %}"
                       method="POST"
-                      class="d-inline"
+                      class="d-inline" data-confirm="Hapus tujuan SPBU {{ dest.spbu.code }} (OL {{ dest.ol_number }})?" data-confirm-detail="Produk yang dikirim ke tujuan ini ikut terhapus."
                     >
                       {% csrf_token %}
                       <button
                         type="submit"
-                        class="btn btn-danger btn-sm"
-                        onclick="return confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.');"
+                        class="btn btn-danger btn-sm" title="Hapus" aria-label="Hapus"
                       >
                         <i class="ti ti-trash"></i>
                       </button>
                     </form>
                   </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="8">No posts available.</td>
                 </tr>
                 {% endfor %}
               </tbody>

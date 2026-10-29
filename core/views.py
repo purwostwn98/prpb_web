@@ -3,16 +3,17 @@ from django.shortcuts import render, redirect, get_object_or_404
 # Create your views here.
 from django.contrib.auth.models import User
 from .forms import UserForm
+from .deletion import delete_if_unused, with_usage
 
 
 def user_list(request):
     """
     View function to list all system users.
     """
-    users = User.objects.all().order_by('-date_joined')
+    users = with_usage(User.objects.all().order_by('-date_joined'), only={'master.Driver'})
     context = {
         'users': users,
-        'total_count': users.count(),
+        'total_count': len(users),
         'active_count': User.objects.filter(is_active=True).count(),
         'staff_count': User.objects.filter(is_staff=True).count(),
         'page': ['core', 'user'],
@@ -60,5 +61,6 @@ def delete_User(request, pk):
     """
     user_obj = get_object_or_404(User, pk=pk)
     if request.method == 'POST':
-        user_obj.delete()
+        # admin log entries do not count as usage; a linked driver profile does
+        delete_if_unused(request, user_obj, f"User {user_obj.username}", only={'master.Driver'})
     return redirect('user_list')

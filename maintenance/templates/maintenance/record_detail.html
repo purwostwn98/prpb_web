@@ -39,15 +39,7 @@
         >
           <span><i class="ti ti-clipboard-list me-2"></i>Informasi Record</span>
           <span>
-            {% if record.status == 'done' or record.status == 'completed' or record.status == 'approved' %}
-            <span class="badge bg-success">{{ record.get_status_display }}</span>
-            {% elif record.status == 'cancelled' or record.status == 'rejected' %}
-            <span class="badge bg-danger">{{ record.get_status_display }}</span>
-            {% elif record.status == 'draft' %}
-            <span class="badge bg-secondary">{{ record.get_status_display }}</span>
-            {% else %}
-            <span class="badge bg-warning text-dark">{{ record.get_status_display }}</span>
-            {% endif %}
+            <span class="badge {{ record.status|status_badge }}">{{ record.get_status_display|default:"-" }}</span>
             <a href="{% url 'update_Record' record.id %}" class="btn btn-warning btn-sm ms-2">
               <i class="ti ti-edit"></i> Edit
             </a>

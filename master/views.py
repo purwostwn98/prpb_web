@@ -2,7 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404 # type: ignore
 
 # Create your views here.
 from django.contrib import messages # type: ignore
-from django.db.models import Count, ProtectedError # type: ignore
+from django.db.models import Count # type: ignore
+
+from core.deletion import delete_if_unused, with_usage
 
 from .models import Merek, Truck, Company, Vendor, Part, Driver, Spbu, Product, ComponentType
 from .forms import MerekForm, TruckForm, CompanyForm, VendorForm, PartForm, DriverForm, SpbuForm, ProductForm, ComponentTypeForm
@@ -13,7 +15,7 @@ def coba_template(request):
 
 # Views daftar data 
 def merek_list(request):
-    mereks = Merek.objects.all().order_by('-updated_at')
+    mereks = with_usage(Merek.objects.all().order_by('-updated_at'))
     data = {
         'page': ['master', 'merek'],
         'title': 'Daftar Merek'
@@ -22,37 +24,37 @@ def merek_list(request):
 
 
 def truck_list(request):
-    trucks = Truck.objects.all().order_by('-updated_at')
+    trucks = with_usage(Truck.objects.all().order_by('-updated_at'))
     return render(request, 'master/truck_list.html', {'trucks': trucks})
 
 
 def company_list(request):
-    companies = Company.objects.all().order_by('-updated_at')
+    companies = with_usage(Company.objects.all().order_by('-updated_at'))
     return render(request, 'master/company_list.html', {'companies': companies})
 
 
 def vendor_list(request):
-    vendors = Vendor.objects.all().order_by('-updated_at')
+    vendors = with_usage(Vendor.objects.all().order_by('-updated_at'))
     return render(request, 'master/vendor_list.html', {'vendors': vendors})
 
 
 def part_list(request):
-    parts = Part.objects.all().order_by('-updated_at')
+    parts = with_usage(Part.objects.all().order_by('-updated_at'))
     return render(request, 'master/part_list.html', {'parts': parts})
 
 
 def driver_list(request):
-    drivers = Driver.objects.all().order_by('-updated_at')
+    drivers = with_usage(Driver.objects.all().order_by('-updated_at'))
     return render(request, 'master/driver_list.html', {'drivers': drivers})
 
 
 def spbu_list(request):
-    spbus = Spbu.objects.all().order_by('-updated_at')
+    spbus = with_usage(Spbu.objects.all().order_by('-updated_at'))
     return render(request, 'master/spbu_list.html', {'spbus': spbus})
 
 
 def product_list(request):
-    products = Product.objects.all().order_by('-updated_at')
+    products = with_usage(Product.objects.all().order_by('-updated_at'))
     return render(request, 'master/product_list.html', {'products': products})
 
 
@@ -302,56 +304,56 @@ def update_Product(request, pk):
 def delete_Merek(request, pk):
     merek = get_object_or_404(Merek, pk=pk)
     if request.method == 'POST':
-        merek.delete()
+        delete_if_unused(request, merek, f"Merek {merek.nama}")
     return redirect('merek_list')
 
 
 def delete_Truck(request, pk):
     truck = get_object_or_404(Truck, pk=pk)
     if request.method == 'POST':
-        truck.delete()
+        delete_if_unused(request, truck, f"Truck {truck.license_plate}")
     return redirect('truck_list')
 
     
 def delete_Company(request, pk):
     company = get_object_or_404(Company, pk=pk)
     if request.method == 'POST':
-        company.delete()
+        delete_if_unused(request, company, f"Perusahaan {company.name}")
     return redirect('company_list')
     
 
 def delete_Vendor(request, pk):
     vendor = get_object_or_404(Vendor, pk=pk)
     if request.method == 'POST':
-        vendor.delete()
+        delete_if_unused(request, vendor, f"Vendor {vendor.name}")
     return redirect('vendor_list')
 
 
 def delete_Part(request, pk):
     part = get_object_or_404(Part, pk=pk)
     if request.method == 'POST':
-        part.delete()
+        delete_if_unused(request, part, f"Part {part.name}")
     return redirect('part_list')
 
 
 def delete_Driver(request, pk):
     driver = get_object_or_404(Driver, pk=pk)
     if request.method == 'POST':
-        driver.delete()
+        delete_if_unused(request, driver, f"Driver {driver.name}")
     return redirect('driver_list')
 
 
 def delete_Spbu(request, pk):
     spbu = get_object_or_404(Spbu, pk=pk)
     if request.method == 'POST':
-        spbu.delete()
+        delete_if_unused(request, spbu, f"SPBU {spbu.code}")
     return redirect('spbu_list')
 
 
 def delete_Product(request, pk):
     product = get_object_or_404(Product, pk=pk)
     if request.method == 'POST':
-        product.delete()
+        delete_if_unused(request, product, f"Produk {product.name}")
     return redirect('product_list')
 
 
@@ -381,10 +383,10 @@ def delete_Product(request, pk):
 
 # Jenis Komponen (ComponentType)
 def componenttype_list(request):
-    component_types = ComponentType.objects.annotate(
+    component_types = with_usage(ComponentType.objects.annotate(
         part_count=Count('parts', distinct=True),
         item_count=Count('record_items', distinct=True),
-    ).order_by('name')
+    ).order_by('name'))
     context = {
         'component_types': component_types,
         'page': ['master', 'componenttype'],
@@ -426,12 +428,5 @@ def update_ComponentType(request, pk):
 def delete_ComponentType(request, pk):
     component_type = get_object_or_404(ComponentType, pk=pk)
     if request.method == 'POST':
-        try:
-            component_type.delete()
-        except ProtectedError:
-            messages.error(
-                request,
-                f"Jenis komponen {component_type.name} sudah dipakai oleh part atau record maintenance "
-                "sehingga tidak dapat dihapus. Nonaktifkan saja jika tidak dipakai lagi.",
-            )
+        delete_if_unused(request, component_type, f"Jenis komponen {component_type.name}")
     return redirect('componenttype_list')

@@ -13,9 +13,9 @@ class Merek(models.Model):
     
 class Truck(models.Model):
     STATUS_CHOICES = [
-        ('active', 'Active'),
-        ('maintenance', 'Maintenance'),
-        ('inactive', 'Inactive'),
+        ('active', 'Aktif'),
+        ('maintenance', 'Dalam Maintenance'),
+        ('inactive', 'Tidak Aktif'),
     ]
 
     ODOMETER_SOURCE_CHOICES = [

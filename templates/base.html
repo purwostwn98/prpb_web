@@ -13,6 +13,29 @@
 
   <!-- Core Css -->
   <link rel="stylesheet" href="{% static 'assets/css/styles.css' %}" />
+  <style>
+    /* Select2 (searchable dropdowns) sized and bordered like the Bootstrap inputs around it */
+    body .select2-container--default .select2-selection--single {
+      position: relative;
+      height: 40px;
+      border: var(--bs-border-width) solid var(--bs-border-color);
+      border-radius: var(--bs-border-radius);
+    }
+    body .select2-container--default .select2-selection--single .select2-selection__rendered {
+      line-height: 38px;
+      padding-left: 0.85rem;
+    }
+    body .select2-container--default .select2-selection--single .select2-selection__arrow,
+    body .select2-container--default .select2-selection--single .select2-selection__clear {
+      height: 38px;
+      line-height: 38px;
+      top: 0;
+    }
+    body .select2-container--default .select2-selection--single .select2-selection__clear {
+      margin-right: 24px;
+      padding: 0 4px;
+    }
+  </style>
 
   <title>{% block title %}{% with page_title=title|default:default_page_title %}{% if page_title %}{{ page_title }} · {% endif %}{% endwith %}Sofipremas{% endblock %}</title>
 </head>
@@ -1160,6 +1183,47 @@
 </script>
   <script src="{% static 'assets/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
   <script src="{% static 'assets/js/dashboards/dashboard5.js' %}"></script>
+  <!-- Shared confirmation dialog for every <form data-confirm="..."> (delete actions) -->
+  <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmModalTitle"><i class="ti ti-alert-triangle text-danger me-1"></i><span></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2 text-danger fw-semibold" id="confirmModalDetail"></p>
+          <p class="mb-0 text-muted">Tindakan ini tidak dapat dibatalkan.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-danger" id="confirmModalOk"><i class="ti ti-trash me-1"></i>Ya, hapus</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var pendingForm = null;
+      var modalEl = document.getElementById("confirmModal");
+      document.addEventListener("submit", function (event) {
+        var form = event.target;
+        if (!form.dataset || !form.dataset.confirm || form.dataset.confirmed === "1") return;
+        event.preventDefault();
+        pendingForm = form;
+        modalEl.querySelector(".modal-title span").textContent = form.dataset.confirm;
+        var detail = modalEl.querySelector("#confirmModalDetail");
+        detail.textContent = form.dataset.confirmDetail || "";
+        detail.style.display = form.dataset.confirmDetail ? "" : "none";
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      }, true);
+      document.getElementById("confirmModalOk").addEventListener("click", function () {
+        if (!pendingForm) return;
+        pendingForm.dataset.confirmed = "1";
+        pendingForm.submit();
+      });
+    })();
+  </script>
   {% block js_block %} {% endblock js_block %}
   <script>
     // Indonesian labels for every DataTable; runs before the pages' $(document).ready() handlers

@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% block content %} {% load static %}
+{% extends 'base.html' %} {% block content %} {% load static fleet_format %}
 
 <div class="card bg-light-info shadow-none position-relative overflow-hidden">
   <div class="card-body px-4 py-3">
@@ -93,13 +93,15 @@
           <div class="table-responsive">
             <table
               id="zero_config"
-              class="table border table-striped table-bordered text-nowrap"
+              class="table border table-striped table-bordered align-middle"
             >
               <thead>
                 <tr>
                   <th>No. Pengiriman</th>
                   <th>Driver</th>
                   <th>Truck</th>
+                  <th class="text-end">Tujuan</th>
+                  <th class="text-end">Muatan / Kapasitas</th>
                   <th>Tanggal Order</th>
                   <th>Tanggal Kirim</th>
                   <th>Status</th>
@@ -112,51 +114,45 @@
                   <td>{{ shipping.delivery_number }}</td>
                   <td>{{ shipping.driver.name|default:"-" }}</td>
                   <td>{{ shipping.truck.license_plate|default:"-" }}</td>
+                  <td class="text-end" data-order="{{ shipping.destination_count }}">{{ shipping.destination_count }} SPBU</td>
+                  <td class="text-end text-nowrap" data-order="{{ shipping.total_quantity|default:0 }}">
+                    {{ shipping.total_quantity|default:0|ribuan }}{% if shipping.truck %} / {{ shipping.truck.capacity|ribuan }}{% endif %} L
+                    {% if shipping.truck and shipping.total_quantity and shipping.total_quantity > shipping.truck.capacity %}
+                    <i class="ti ti-alert-triangle text-warning" title="Muatan melebihi kapasitas truck"></i>
+                    {% endif %}
+                  </td>
                   <td>{{ shipping.order_date|date:"d M Y" }}</td>
                   <td>{{ shipping.delivery_date|date:"d M Y"|default:"-" }}</td>
                   <td>
-                    {% if shipping.status == 'completed' %}
-                    <span class="badge bg-success">{{ shipping.get_status_display }}</span>
-                    {% elif shipping.status == 'cancelled' %}
-                    <span class="badge bg-danger">{{ shipping.get_status_display }}</span>
-                    {% elif shipping.status == 'draft' %}
-                    <span class="badge bg-secondary">{{ shipping.get_status_display }}</span>
-                    {% else %}
-                    <span class="badge bg-warning text-dark">{{ shipping.get_status_display }}</span>
-                    {% endif %}
+                    <span class="badge {{ shipping.status|status_badge }}">{{ shipping.get_status_display|default:"-" }}</span>
                   </td>
-                  <td>
+                  <td class="text-nowrap">
                     <a
                       href="{% url 'shipping_detail' shipping.id %}"
-                      class="btn btn-info btn-sm"
+                      class="btn btn-info btn-sm" title="Lihat detail" aria-label="Lihat detail"
                     >
                       <i class="ti ti-eye"></i>
                     </a>
                     <a
                       href="{% url 'update_Shipping' shipping.id %}"
-                      class="btn btn-warning btn-sm"
+                      class="btn btn-warning btn-sm" title="Ubah" aria-label="Ubah"
                     >
                       <i class="ti ti-edit"></i>
                     </a>
                     <form
                       action="{% url 'delete_Shipping' shipping.id %}"
                       method="POST"
-                      class="d-inline"
+                      class="d-inline" data-confirm="Hapus pengiriman {{ shipping.delivery_number }}?" data-confirm-detail="Semua tujuan SPBU dan produk dalam pengiriman ini ikut terhapus."
                     >
                       {% csrf_token %}
                       <button
                         type="submit"
-                        class="btn btn-danger btn-sm"
-                        onclick="return confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.');"
+                        class="btn btn-danger btn-sm" title="Hapus" aria-label="Hapus"
                       >
                         <i class="ti ti-trash"></i>
                       </button>
                     </form>
                   </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="7">No posts available.</td>
                 </tr>
                 {% endfor %}
               </tbody>
