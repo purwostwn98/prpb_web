@@ -1,4 +1,7 @@
 from rest_framework import viewsets, permissions
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from maintenance.analytics import STATUS_OVERDUE, STATUS_SOON, component_due_list, warning_components
 from delivery.models import Shipping, ShippingTo
 from master.models import Driver, Merek, Truck
 from .serializers import MerekSerializer, PressureChartDataSerializer, ShippingSerializer, ShippingToSerializer, TruckDataSerializer, TruckSerializer, MttfSerializer, UserDriverSerializer, UserSerializer
@@ -111,3 +114,56 @@ class PressureChartDataViewSet(viewsets.ModelViewSet):
         return queryset
 
     
+
+class DriverAlertsView(APIView):
+    """
+    Maintenance warnings for the driver app: components that are overdue or due soon
+    (same rules as the web Early Warning page) and trucks whose km is out of date.
+    A driver sees the trucks of their own shipments; other users see every operating truck.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        trucks = Truck.objects.exclude(status='inactive')
+        driver = Driver.objects.filter(user=request.user).first()
+        if driver:
+            trucks = trucks.filter(shipping__driver=driver).distinct()
+
+        alerts = []
+        stale_trucks = {}
+        for component in warning_components():
+            for row in component_due_list(component, trucks):
+                truck = row['truck']
+                if row['odometer_stale']:
+                    stale_trucks[truck.pk] = (truck, row['odometer_age_days'])
+                if row['status'] not in (STATUS_OVERDUE, STATUS_SOON):
+                    continue
+                alerts.append({
+                    'type': 'component',
+                    'truck_id': truck.pk,
+                    'license_plate': truck.license_plate,
+                    'component_code': component.code,
+                    'component_name': component.name,
+                    'status': row['status'],
+                    'status_label': row['status_label'],
+                    'remaining_km': row['remaining_km'],
+                    'remaining_days': row['remaining_days'],
+                    'due_km': row['due_km'],
+                    'due_date': row['due_date'],
+                    'current_odometer': truck.current_odometer,
+                })
+        alerts.sort(key=lambda a: (a['status'] != STATUS_OVERDUE, a['license_plate'], a['component_name']))
+
+        # the km countdown is only as fresh as the truck's last reported odometer
+        for truck, age_days in sorted(stale_trucks.values(), key=lambda t: t[0].license_plate):
+            alerts.append({
+                'type': 'odometer',
+                'truck_id': truck.pk,
+                'license_plate': truck.license_plate,
+                'status': 'info',
+                'status_label': 'Perlu diperbarui',
+                'odometer_age_days': age_days,
+                'current_odometer': truck.current_odometer,
+            })
+        return Response({'alerts': alerts})

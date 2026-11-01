@@ -261,6 +261,30 @@ class EarlyWarningTests(TestCase):
         self.assertEqual(rows['NODATA']['status'], 'no_data')
         self.assertEqual(rows['SOON']['usage_pct'], 85.0)
 
+    def test_driver_alerts_api_lists_only_the_drivers_trucks(self):
+        from delivery.models import Shipping
+        from master.models import Driver
+        mine_overdue, mine_ok, other = (self.make_truck(p, 0) for p in ('MINE-1', 'MINE-2', 'OTHER'))
+        for truck, current in ((mine_overdue, 110500), (mine_ok, 101000), (other, 110500)):
+            self.change_oil(truck, 100000)
+            Truck.objects.filter(pk=truck.pk).update(current_odometer=current)
+        driver_user = User.objects.create_user('budi', password='x')
+        driver = Driver.objects.create(
+            name='Budi', user=driver_user, license_number='SIM1', phone_number='0', years_old=30, address='-',
+        )
+        for number, truck in (('DO-1', mine_overdue), ('DO-2', mine_ok)):
+            Shipping.objects.create(delivery_number=number, order_date=datetime.date(2026, 10, 28), truck=truck, driver=driver)
+
+        client = APIClient()
+        client.force_authenticate(driver_user)
+        alerts = client.get('/api/driver-alerts/').json()['alerts']
+
+        components = [a for a in alerts if a['type'] == 'component']
+        self.assertEqual([(a['license_plate'], a['component_code'], a['status'], a['remaining_km']) for a in components],
+                         [('MINE-1', 'OLI_MESIN', 'overdue', -500)])
+        # neither truck ever reported its km, so both get the "update your km" hint
+        self.assertEqual(sorted(a['license_plate'] for a in alerts if a['type'] == 'odometer'), ['MINE-1', 'MINE-2'])
+
     def test_exactly_2000_km_left_is_not_yet_a_warning(self):
         truck = self.make_truck('EDGE', 0)
         self.change_oil(truck, 100000)
