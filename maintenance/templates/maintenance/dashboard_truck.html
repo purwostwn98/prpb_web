@@ -361,11 +361,19 @@
                   >
                   {% endif %}
                 </p>
+                {% if iot_enabled %}
                 <canvas id="pressureChart" height="150"></canvas>
                 <div class="alert alert-warning mt-3">
                   <i class="fas fa-exclamation-triangle me-2"></i>
                   Pressure increase detected (Possible clogging)
                 </div>
+                {% else %}
+                <div class="alert alert-secondary mb-0">
+                  <i class="ti ti-info-circle me-2"></i>
+                  Pemantauan tekanan filter dari sensor IoT sedang dinonaktifkan sementara
+                  karena layanan data IoT belum dapat merespons dengan cepat.
+                </div>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -580,6 +588,7 @@
     $("#reliability-score").text(newValue + "%");
   }
 
+  {% if iot_enabled %}
   // Pressure Trend Chart with Real-Time Data
   const pressureChartCtx = document
     .getElementById("pressureChart")
@@ -690,6 +699,7 @@
   }
 
   setInterval(updatePressureChart, 10000);
+  {% endif %}
 
   // jika menggunakan api
   // async function updatePressureChart() {

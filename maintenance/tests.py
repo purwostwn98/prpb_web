@@ -8,7 +8,7 @@ from rest_framework.test import APIClient
 from master.models import ComponentType, Merek, Part, Truck
 from .analytics import component_records, fitted_mttf, get_component, next_service, reliability_summary, time_to_failures
 from .forms import RecordItemFormSet
-from .models import Record, RecordItem
+from .models import Record, RecordItem, TruckDeviceModel
 
 
 class ComponentAnalyticsTests(TestCase):
@@ -322,3 +322,30 @@ class EarlyWarningTests(TestCase):
 
         response = self.client.get('/maintenance/dashboard')
         self.assertEqual(response.context['warning_counts']['soon'], 1)
+
+
+class IotPressureDisabledTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        brand = Merek.objects.create(nama='Hino', deskripsi='-')
+        cls.truck = Truck.objects.create(
+            license_plate='AD 1 AA', brand=brand, model='FM', year=2020, capacity=16000, current_odometer=0,
+        )
+        TruckDeviceModel.objects.create(truck=cls.truck, device_model='ACL-0002-AT')
+        cls.user = User.objects.create_user('tester', password='x')
+
+    @mock.patch('core.utils.requests.get')
+    def test_disabled_feature_never_calls_the_iot_api(self, requests_get):
+        self.client.force_login(self.user)
+        page = self.client.get(f'/maintenance/dashboard-truck?id={self.truck.pk}')
+        self.assertContains(page, 'sedang dinonaktifkan sementara')
+        self.assertNotContains(page, 'id="pressureChart"')
+
+        response = self.client.get(f'/maintenance/dinamis/get-fuel-filter-pressure/{self.truck.pk}/')
+        self.assertEqual(response.status_code, 503)
+
+        api = APIClient()
+        api.force_authenticate(self.user)
+        data = api.get(f'/api/pressure-cart-data/?truck_id={self.truck.pk}').json()
+        self.assertEqual([p['pressure'] for p in data[0]['pressure_chart_data']], [0] * 7)
+        requests_get.assert_not_called()

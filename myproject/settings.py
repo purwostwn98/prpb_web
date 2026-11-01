@@ -143,6 +143,10 @@ DATABASES = {
 
 SUPERUSER_NAME = config('DJANGO_SUPERUSER_USERNAME')
 
+# Fuel filter pressure from the IoT API (iot.ums-biroti.id). Off until that API can
+# return recent readings quickly; see docs/catatan-api-iot.md.
+IOT_PRESSURE_ENABLED = config('IOT_PRESSURE_ENABLED', default=False, cast=bool)
+
 
 
 # Password validation

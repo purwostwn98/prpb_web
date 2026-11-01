@@ -24,6 +24,7 @@ from maintenance.analytics import (
     get_component, get_warning_component, next_service, reliability_summary, tracked_components, warning_components,
 )
 from master.odometer import odometer_error, record_odometer
+from django.conf import settings # type: ignore
 from django.contrib import messages # type: ignore
 from django.utils.http import url_has_allowed_host_and_scheme # type: ignore
 from django.views.decorators.http import require_POST # type: ignore
@@ -126,6 +127,7 @@ def dashboard_truck(request):
         'warning': warning,
         'truck_data': truck_data,
         'device_model': truck_device.device_model if truck_device else None,
+        'iot_enabled': settings.IOT_PRESSURE_ENABLED,
         'component': component,
         'components': tracked_components(),
         'last_service_odometer': last_maintenance.odometer_reading if last_maintenance else 0,
@@ -224,6 +226,8 @@ def getFuelFilterPressure(request, id):
     """
     View function to get the fuel filter pressure for a specific truck.
     """
+    if not settings.IOT_PRESSURE_ENABLED:
+        return JsonResponse({'error': 'Fitur tekanan filter IoT sedang dinonaktifkan.'}, status=503)
     truck_id = id
     # get truck device_id
     truckDevice = TruckDeviceModel.objects.filter(truck__id=truck_id).first()

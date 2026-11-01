@@ -196,56 +196,24 @@ class PressureChartDataSerializer(serializers.ModelSerializer):
     pressure_chart_data = serializers.SerializerMethodField()
 
     def get_pressure_chart_data(self, obj):
-        # Example static data for pressure chart
+        # the driver app expects seven points; zeros mean "no sensor data"
+        now = datetime.now()
+        no_data = [{
+            'date': now.strftime('%Y-%m-%d'),
+            'day': now.strftime('%a'),
+            'pressure': 0,
+            'timestamp': now.strftime('%Y-%m-%dT%H:%M:%S'),
+        } for _ in range(7)]
+
         truck_id = obj.id
         truckDevice = TruckDeviceModel.objects.filter(truck__id=truck_id).first()
         if not truckDevice:
-            transformed_data = [{
-                'date': datetime.now().strftime('%Y-%m-%d'),
-                'day': datetime.now().strftime('%a'),
-                'pressure': 0,
-                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-            },
-            {
-                'date': datetime.now().strftime('%Y-%m-%d'),
-                'day': datetime.now().strftime('%a'),
-                'pressure': 0,
-                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-            },
-            {
-                'date': datetime.now().strftime('%Y-%m-%d'),
-                'day': datetime.now().strftime('%a'),
-                'pressure': 0,
-                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-            },
-            {
-                'date': datetime.now().strftime('%Y-%m-%d'),
-                'day': datetime.now().strftime('%a'),
-                'pressure': 0,
-                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-            },
-            {
-                'date': datetime.now().strftime('%Y-%m-%d'),
-                'day': datetime.now().strftime('%a'),
-                'pressure': 0,
-                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-            },
-            {
-                'date': datetime.now().strftime('%Y-%m-%d'),
-                'day': datetime.now().strftime('%a'),
-                'pressure': 0,
-                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-            },
-            {
-                'date': datetime.now().strftime('%Y-%m-%d'),
-                'day': datetime.now().strftime('%a'),
-                'pressure': 0,
-                'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-            }]
-            return transformed_data
+            return no_data
         
         device_id = truckDevice.device_model
         response = get_fuel_filter_pressure_from_api(device_id)
+        if not response:  # feature disabled or IoT API unavailable
+            return no_data
         results = response.get('results', [])
         # Transform each result
         transformed_data = []

@@ -2,6 +2,7 @@ import requests # type:ignore
 import json
 import os
 import numpy as np
+from django.conf import settings # type: ignore
 
 
 
@@ -49,6 +50,8 @@ def get_fuel_filter_pressure_from_api(device_id):
     Returns:
         dict: The most recent reading, or None if unavailable or an error occurs.
     """
+    if not settings.IOT_PRESSURE_ENABLED:
+        return None
     token = os.environ.get('IOT_API_TOKEN')
     if not token:
         print("IOT_API_TOKEN is not set; skipping fuel filter pressure request.")
