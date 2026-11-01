@@ -109,25 +109,43 @@ class ShippingSerializer(serializers.ModelSerializer):
     model = serializers.SerializerMethodField()
     def get_model(self, obj):
         return obj.truck.model if obj.truck else None
-    
+
+    # last known truck km, shown to the driver as the minimum for odometer_end
+    current_odometer = serializers.SerializerMethodField()
+    def get_current_odometer(self, obj):
+        return obj.truck.current_odometer if obj.truck else None
+
     class Meta:
         model = Shipping
-        fields = ['id', 'driver', 'delivery_date', 'truck', 'model', 'license_plate', 'status', 'odometer_end', 'shippingto']  # Added license_plate
+        fields = ['id', 'driver', 'delivery_date', 'truck', 'model', 'license_plate', 'status', 'odometer_end', 'current_odometer', 'shippingto']  # Added license_plate
 
     def validate(self, attrs):
         # partial updates (PATCH) only send changed fields, so fall back to the stored values
         instance = self.instance
+        status = attrs.get('status', instance.status if instance else 'draft')
         errors = shipping_assignment_errors(
             truck=attrs.get('truck', instance.truck if instance else None),
             driver=attrs.get('driver', instance.driver if instance else None),
-            status=attrs.get('status', instance.status if instance else 'draft'),
+            status=status,
             exclude_pk=instance.pk if instance else None,
         )
-        odometer_end = attrs.get('odometer_end')
+        odometer_end = attrs.get('odometer_end', instance.odometer_end if instance else None)
         if odometer_end is not None and (instance is None or odometer_end != instance.odometer_end):
             error = odometer_error(attrs.get('truck', instance.truck if instance else None), odometer_end)
             if error:
                 errors['odometer_end'] = error
+
+        completing = status == 'completed' and (instance is None or instance.status != 'completed')
+        if completing:
+            # the driver's km report is what keeps the oil-change countdown up to date
+            if odometer_end is None:
+                errors['odometer_end'] = 'KM akhir truck wajib diisi saat menyelesaikan pengiriman.'
+            if instance and instance.status not in ('pending', 'on_progress'):
+                errors['status'] = f'Pengiriman berstatus {instance.get_status_display()} tidak dapat diselesaikan.'
+            request = self.context.get('request')
+            own_driver = Driver.objects.filter(user=request.user).first() if request else None
+            if instance and own_driver and instance.driver_id != own_driver.pk:
+                errors['driver'] = 'Pengiriman ini bukan milik Anda.'
         if errors:
             raise serializers.ValidationError(errors)
         return attrs

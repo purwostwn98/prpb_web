@@ -177,6 +177,35 @@ class ShippingAssignmentValidationTests(TestCase):
         self.assertIn('odometer_end', response.json())
         self.assertFalse(self.form(odometer_end=25000).is_valid())
 
+    def complete_via_api(self, shipping, user, **data):
+        client = APIClient()
+        client.force_authenticate(user)
+        return client.patch(f'/api/shipping/{shipping.pk}/', {'status': 'completed', **data}, format='json')
+
+    def test_completing_without_odometer_is_rejected(self):
+        shipping = self.make_shipping('DO-1', 'on_progress', self.truck, self.driver)
+        response = self.complete_via_api(shipping, self.driver.user)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('odometer_end', response.json())
+
+    def test_driver_completes_own_shipping(self):
+        shipping = self.make_shipping('DO-1', 'pending', self.truck, self.driver)
+        response = self.complete_via_api(shipping, self.driver.user, odometer_end=12000)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['current_odometer'], 12000)
+
+    def test_driver_cannot_complete_someone_elses_shipping(self):
+        shipping = self.make_shipping('DO-1', 'on_progress', self.truck, self.driver)
+        response = self.complete_via_api(shipping, self.driver2.user, odometer_end=12000)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('driver', response.json())
+
+    def test_draft_shipping_cannot_be_completed(self):
+        shipping = self.make_shipping('DO-1', 'draft', self.truck, self.driver)
+        response = self.complete_via_api(shipping, self.driver.user, odometer_end=12000)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('status', response.json())
+
     def test_shipping_list_shows_destinations_and_load(self):
         shipping = self.make_shipping('DO-1', 'draft', self.truck, self.driver)
         for ol, qty in (('OL-1', 8000), ('OL-2', 9000)):
